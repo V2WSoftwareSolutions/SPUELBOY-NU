@@ -1,0 +1,56 @@
+<div class="select" [class.select--open]="open()" [class.select--up]="dropUp()">
+  <button
+    type="button"
+    #trigger
+    class="nu-field select__trigger"
+    role="combobox"
+    aria-haspopup="listbox"
+    [id]="inputId()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="inputId() + '-listbox'"
+    [attr.aria-activedescendant]="open() ? optionId(active()) : null"
+    [disabled]="disabled()"
+    (click)="toggle()"
+    (keydown)="onTriggerKeydown($event)"
+  >
+    <span class="select__value" [class.select__value--placeholder]="!selected()">{{ selectedLabel() }}</span>
+    <svg class="select__chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 8 5 5 5-5" /></svg>
+  </button>
+
+  @if (open()) {
+    <!-- Transparent on desktop (a click outside closes the list), dimmed on phones behind the sheet. -->
+    <div class="select__backdrop" (click)="close()"></div>
+
+    <!-- mousedown is swallowed so the trigger keeps focus while an option is clicked. -->
+    <div class="select__panel" (mousedown)="$event.preventDefault()">
+      <span class="select__handle" aria-hidden="true"></span>
+      @if (label()) {
+        <span class="select__title" aria-hidden="true">{{ label() }}</span>
+      }
+      <ul
+        class="select__list"
+        role="listbox"
+        [id]="inputId() + '-listbox'"
+        [attr.aria-label]="label() || null"
+        [style.maxHeight]="listMax()"
+      >
+        @for (option of options(); track option.value; let index = $index) {
+          <li
+            class="select__option"
+            role="option"
+            [id]="optionId(index)"
+            [class.select__option--active]="index === active()"
+            [attr.aria-selected]="option.value === value()"
+            (click)="choose(option)"
+            (mousemove)="active.set(index)"
+          >
+            <span class="select__option-label">{{ option.label }}</span>
+            @if (option.value === value()) {
+              <svg class="select__check" viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10.5 4 4 8-9" /></svg>
+            }
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</div>

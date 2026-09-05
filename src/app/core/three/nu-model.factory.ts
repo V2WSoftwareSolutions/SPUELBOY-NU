@@ -2,6 +2,9 @@ import * as THREE from 'three';
 
 import { NuViewerVariant } from '../models/product.model';
 
+/** The two NU® bodies this factory builds; the Neptun T2000 has its own factory. */
+export type NuDeviceVariant = Exclude<NuViewerVariant, 'neptun'>;
+
 /**
  * Procedural stand-in for the SPÜLBOY NU® devices.
  *
@@ -35,6 +38,11 @@ import { NuViewerVariant } from '../models/product.model';
  *
  * Materials are named so a real GLB can drop in later re-using the same names
  * (`NU_Housing`, `NU_Deck`, `NU_Accent`, ...).
+ *
+ * The geometry primitives, the cleaning-demo props and choreography and the
+ * exploded-view bookkeeping are exported: `neptun-model.factory.ts` builds the
+ * CLASSIC & ECO Line device from the same parts, so every stage on the page
+ * behaves the same way.
  */
 
 export interface NuModel {
@@ -71,6 +79,9 @@ const BRUSH_BLACK = '#22252a';
 const BEER_STAIN = '#a8752b';
 const METAL = '#aeb3b8';
 const HOSE_GREY = '#cdd2d6';
+/** The rinse water: blue-white beads with a faint glow, so they show on white. */
+const WATER_BLUE = '#b8dcff';
+const WATER_GLOW = '#4d9fe0';
 
 // ---------------------------------------------------------------- dimensions
 // Millimetres from the official NU® dimension drawing, expressed in metres.
@@ -120,7 +131,7 @@ const INLET = { x: -0.1675, y: 0.045, z: 0.055 };
 
 // ------------------------------------------------------------------ geometry
 
-interface ShellRing {
+export interface ShellRing {
   y: number;
   halfW: number;
   halfD: number;
@@ -160,7 +171,7 @@ function perimeter(ring: ShellRing): THREE.Vector2[] {
 }
 
 /** Lofts the rounded-rectangle cross-section through every ring, bottom up. */
-function createSweptShell(
+export function createSweptShell(
   rings: ShellRing[],
   caps: { bottom?: boolean; top?: boolean } = {},
 ): THREE.BufferGeometry {
@@ -219,7 +230,7 @@ function roundedRectContour(
   path.closePath();
 }
 
-function roundedRectShape(halfW: number, halfD: number, radius: number): THREE.Shape {
+export function roundedRectShape(halfW: number, halfD: number, radius: number): THREE.Shape {
   const shape = new THREE.Shape();
   roundedRectContour(halfW, halfD, radius, shape);
   return shape;
@@ -230,7 +241,7 @@ function roundedRectShape(halfW: number, halfD: number, radius: number): THREE.S
  * and rotated into XZ by `extrudeFlat`, and both openings sit on z = 0, so an x
  * offset is the only one ever needed here.
  */
-function roundedRectHole(halfW: number, halfD: number, radius: number, offsetX = 0): THREE.Path {
+export function roundedRectHole(halfW: number, halfD: number, radius: number, offsetX = 0): THREE.Path {
   const path = new THREE.Path();
   roundedRectContour(halfW, halfD, radius, path, offsetX);
   return path;
@@ -255,7 +266,7 @@ function roundedRectFrame(
 }
 
 /** Extrudes a flat outline into the XZ plane with its **top** face at y = 0. */
-function extrudeFlat(shape: THREE.Shape, thickness: number): THREE.BufferGeometry {
+export function extrudeFlat(shape: THREE.Shape, thickness: number): THREE.BufferGeometry {
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth: thickness,
     bevelEnabled: false,
@@ -270,7 +281,72 @@ function extrudeFlat(shape: THREE.Shape, thickness: number): THREE.BufferGeometr
 
 // ----------------------------------------------------------------- materials
 
-interface NuMaterials {
+/**
+ * The cleaning demo's props. `depthWrite: false` on all three keeps the stain
+ * and the water legible through the glass instead of z-fighting it. Every
+ * device plays the same demo, so they live apart from the housing palette.
+ */
+export interface DemoMaterials {
+  glass: THREE.MeshPhysicalMaterial;
+  /** The handle is thick, solid glass, so it reads denser than the thin wall. */
+  handle: THREE.MeshPhysicalMaterial;
+  stain: THREE.MeshStandardMaterial;
+  water: THREE.MeshPhysicalMaterial;
+}
+
+export function createDemoMaterials(): DemoMaterials {
+  return {
+    glass: new THREE.MeshPhysicalMaterial({
+      name: 'NU_Glass',
+      color: new THREE.Color('#eaf1f6'),
+      metalness: 0,
+      roughness: 0.05,
+      clearcoat: 1,
+      clearcoatRoughness: 0.04,
+      transparent: true,
+      opacity: 0.3,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+    handle: new THREE.MeshPhysicalMaterial({
+      name: 'NU_GlassHandle',
+      color: new THREE.Color('#dce8f0'),
+      metalness: 0,
+      roughness: 0.08,
+      clearcoat: 1,
+      clearcoatRoughness: 0.04,
+      transparent: true,
+      opacity: 0.62,
+      depthWrite: false,
+    }),
+    stain: new THREE.MeshStandardMaterial({
+      name: 'NU_Stain',
+      color: new THREE.Color(BEER_STAIN),
+      metalness: 0,
+      roughness: 0.65,
+      transparent: true,
+      opacity: 0.7,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+    // Water: glossy beads whose opacity follows the strength of the rinse.
+    water: new THREE.MeshPhysicalMaterial({
+      name: 'NU_Water',
+      color: new THREE.Color(WATER_BLUE),
+      emissive: new THREE.Color(WATER_GLOW),
+      emissiveIntensity: 0.35,
+      metalness: 0,
+      roughness: 0.15,
+      clearcoat: 1,
+      clearcoatRoughness: 0.05,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    }),
+  };
+}
+
+interface NuMaterials extends DemoMaterials {
   body: THREE.MeshPhysicalMaterial;
   deck: THREE.MeshPhysicalMaterial;
   accent: THREE.MeshPhysicalMaterial;
@@ -282,9 +358,6 @@ interface NuMaterials {
   metal: THREE.MeshStandardMaterial;
   hose: THREE.MeshPhysicalMaterial;
   counter: THREE.MeshPhysicalMaterial;
-  glass: THREE.MeshPhysicalMaterial;
-  stain: THREE.MeshStandardMaterial;
-  spray: THREE.MeshStandardMaterial;
 }
 
 function createMaterials(): NuMaterials {
@@ -371,40 +444,7 @@ function createMaterials(): NuMaterials {
       clearcoat: 0.2,
     }),
 
-    // The cleaning demo's props. `depthWrite: false` on all three keeps the
-    // stain and the spray legible through the glass instead of z-fighting it.
-    glass: new THREE.MeshPhysicalMaterial({
-      name: 'NU_Glass',
-      color: new THREE.Color('#eaf1f6'),
-      metalness: 0,
-      roughness: 0.05,
-      clearcoat: 1,
-      clearcoatRoughness: 0.04,
-      transparent: true,
-      opacity: 0.3,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    }),
-    stain: new THREE.MeshStandardMaterial({
-      name: 'NU_Stain',
-      color: new THREE.Color(BEER_STAIN),
-      metalness: 0,
-      roughness: 0.65,
-      transparent: true,
-      opacity: 0.7,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    }),
-    spray: new THREE.MeshStandardMaterial({
-      name: 'NU_Spray',
-      color: new THREE.Color('#f2f8ff'),
-      metalness: 0,
-      roughness: 0.2,
-      transparent: true,
-      opacity: 0,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    }),
+    ...createDemoMaterials(),
   };
 }
 
@@ -680,6 +720,8 @@ function buildRinseBasin(lid: THREE.Group, materials: NuMaterials): void {
 
 const CONE_BOTTOM = BASIN_FLOOR_Y + 0.024; // seats over the valve star
 const CONE_TOP = CONE_BOTTOM + 0.056;
+/** Tip of the rinser pin — where the fresh water leaves for the glass. */
+const PIN_TOP = CONE_TOP + 0.035;
 
 /**
  * The rinsing cone, mounted over the valve on the basin axis. It and the pin
@@ -706,7 +748,7 @@ function createRinserPin(materials: NuMaterials): THREE.Group {
   group.name = 'NU_RinserPin';
 
   const bottom = CONE_TOP - 0.002;
-  const top = bottom + 0.037;
+  const top = PIN_TOP;
 
   const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.0045, 0.0052, top - bottom, 20), materials.accessory);
   pin.position.y = (bottom + top) / 2;
@@ -727,7 +769,7 @@ function createRinserPin(materials: NuMaterials): THREE.Group {
 }
 
 /** A bristle: pivot at the root, so an instance scales outward along its length. */
-function bristleGeometry(rootRadius: number, tipRadius: number): THREE.CylinderGeometry {
+export function bristleGeometry(rootRadius: number, tipRadius: number): THREE.CylinderGeometry {
   const geometry = new THREE.CylinderGeometry(rootRadius, tipRadius, 1, 5, 1);
   geometry.translate(0, 0.5, 0);
   return geometry;
@@ -975,7 +1017,7 @@ function createHose(points: Array<[number, number, number]>, materials: NuMateri
 }
 
 /** Drain boss and outlet for both variants; feet only for the portable one. */
-function buildUnderside(device: THREE.Group, materials: NuMaterials, variant: NuViewerVariant): void {
+function buildUnderside(device: THREE.Group, materials: NuMaterials, variant: NuDeviceVariant): void {
   const boss = new THREE.Mesh(new THREE.CylinderGeometry(0.031, 0.029, 0.014, 32), materials.body);
   boss.position.y = -0.006;
   device.add(boss);
@@ -1027,7 +1069,7 @@ const GLASS_SCRUB_Y = 0.255;
  * the base rises to +y — because that is how a glass is held over the brushes,
  * and it makes the choreography below a matter of moving one rim height.
  */
-function createDemoGlass(materials: NuMaterials): THREE.Group {
+export function createDemoGlass(materials: DemoMaterials): THREE.Group {
   const glass = new THREE.Group();
   glass.name = 'NU_DemoGlass';
 
@@ -1069,12 +1111,57 @@ function createDemoGlass(materials: NuMaterials): THREE.Group {
   stain.name = 'NU_DemoGlassStain';
   glass.add(stain);
 
+  // The handle: a C on the side, like a tea glass — out from just below the
+  // rim, round, and back in at mid-body. It points to +z, towards the camera
+  // and clear of every rinser, and starts and ends inside the wall so it
+  // reads as one piece with the glass.
+  const handle = new THREE.Mesh(
+    new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0.016, 0.034),
+        new THREE.Vector3(0, 0.026, 0.058),
+        new THREE.Vector3(0, 0.055, 0.067),
+        new THREE.Vector3(0, 0.084, 0.055),
+        new THREE.Vector3(0, 0.096, 0.031),
+      ]),
+      32,
+      0.0045,
+      10,
+      false,
+    ),
+    materials.handle,
+  );
+  handle.name = 'NU_DemoGlassHandle';
+  glass.add(handle);
+
   return glass;
 }
 
-interface CleaningPose {
-  /** Where the glass sits across the deck: over the pot, or over the basin. */
+/** One place the glass is worked at: where it sits, and how far its rim drops. */
+export interface CleaningStation {
   x: number;
+  z: number;
+  /** Rim height with the glass seated at this station. */
+  seatedY: number;
+}
+
+/**
+ * Where a device keeps its two stations, so the one choreography below can
+ * play on any of them. Heights are rim heights of the rim-down glass.
+ */
+export interface CleaningStations {
+  /** Rim height the glass hovers at between stations. */
+  hoverY: number;
+  /** Over the brushes; strokeY is the deepest point of a scrubbing stroke. */
+  scrub: CleaningStation & { strokeY: number };
+  /** Over the rinser; bob is how far the glass works the valve while rinsing. */
+  rinse: CleaningStation & { bob: number };
+}
+
+export interface CleaningPose {
+  /** Where the glass is across the deck. */
+  x: number;
+  z: number;
   /** Height of the glass rim. */
   rimY: number;
   /** Opacity of the beer residue, 0.7 filthy down to 0 clean. */
@@ -1087,16 +1174,25 @@ interface CleaningPose {
   fade: number;
 }
 
+/** The NU® stations: brush pot on the right, rinser basin on the left. */
+const NU_STATIONS: CleaningStations = {
+  hoverY: GLASS_HOVER_Y,
+  scrub: { x: POT_X, z: 0, seatedY: GLASS_SEATED_Y, strokeY: GLASS_SCRUB_Y },
+  rinse: { x: BASIN_X, z: 0, seatedY: GLASS_SEATED_Y, bob: 0.012 },
+};
+
 /**
  * The four-step routine from the brochure, as one timeline: the stained glass
  * appears, is scrubbed over the brushes, carried across, clear-rinsed on the
  * rinser, then lifted out clean. `progress` runs 0 → 1 over the whole show.
  */
-function cleaningPose(progress: number): CleaningPose {
+export function cleaningPose(progress: number, stations: CleaningStations): CleaningPose {
   const { lerp, smoothstep } = THREE.MathUtils;
+  const { hoverY, scrub, rinse } = stations;
   const pose: CleaningPose = {
-    x: POT_X,
-    rimY: GLASS_HOVER_Y,
+    x: scrub.x,
+    z: scrub.z,
+    rimY: hoverY,
     stain: 0.7,
     spray: 0,
     press: 0,
@@ -1108,42 +1204,47 @@ function cleaningPose(progress: number): CleaningPose {
     pose.fade = smoothstep(progress / 0.14, 0, 1);
   } else if (progress < 0.22) {
     // Lower it onto the brushes.
-    pose.rimY = lerp(GLASS_HOVER_Y, GLASS_SEATED_Y, smoothstep((progress - 0.14) / 0.08, 0, 1));
+    pose.rimY = lerp(hoverY, scrub.seatedY, smoothstep((progress - 0.14) / 0.08, 0, 1));
     pose.press = smoothstep((progress - 0.14) / 0.08, 0, 1);
   } else if (progress < 0.5) {
     // Pre-wash: rapid up-and-down strokes over the brush, never turning.
     const k = (progress - 0.22) / 0.28;
     const stroke = 0.5 - 0.5 * Math.cos(k * Math.PI * 8);
-    pose.rimY = lerp(GLASS_SEATED_Y, GLASS_SCRUB_Y, stroke);
+    pose.rimY = lerp(scrub.seatedY, scrub.strokeY, stroke);
     pose.stain = lerp(0.7, 0.25, k);
     pose.press = 1;
   } else if (progress < 0.6) {
     // Lift out and carry across to the rinser.
     const k = smoothstep((progress - 0.5) / 0.1, 0, 1);
-    pose.rimY = lerp(GLASS_SEATED_Y, GLASS_HOVER_Y, Math.min(1, k * 2));
-    pose.x = lerp(POT_X, BASIN_X, k);
+    pose.rimY = lerp(scrub.seatedY, hoverY, Math.min(1, k * 2));
+    pose.x = lerp(scrub.x, rinse.x, k);
+    pose.z = lerp(scrub.z, rinse.z, k);
     pose.stain = 0.25;
     pose.press = Math.max(0, 1 - k * 3);
   } else if (progress < 0.68) {
-    // Lower it onto the rinser pole.
-    pose.x = BASIN_X;
-    pose.rimY = lerp(GLASS_HOVER_Y, GLASS_SEATED_Y, smoothstep((progress - 0.6) / 0.08, 0, 1));
+    // Lower it onto the rinser.
+    pose.x = rinse.x;
+    pose.z = rinse.z;
+    pose.rimY = lerp(hoverY, rinse.seatedY, smoothstep((progress - 0.6) / 0.08, 0, 1));
     pose.stain = 0.25;
   } else if (progress < 0.86) {
     // Clear-rinsing: fresh water through the inside of the glass.
     const k = (progress - 0.68) / 0.18;
-    pose.x = BASIN_X;
-    pose.rimY = GLASS_SEATED_Y - 0.012 * (0.5 - 0.5 * Math.cos(k * Math.PI * 4));
+    pose.x = rinse.x;
+    pose.z = rinse.z;
+    pose.rimY = rinse.seatedY - rinse.bob * (0.5 - 0.5 * Math.cos(k * Math.PI * 4));
     pose.stain = lerp(0.25, 0, Math.min(1, k * 1.4));
     pose.spray = Math.min(1, k * 5) * Math.min(1, (1 - k) * 5);
   } else if (progress < 0.94) {
     // Lift the clean glass clear.
-    pose.x = BASIN_X;
-    pose.rimY = lerp(GLASS_SEATED_Y, GLASS_HOVER_Y, smoothstep((progress - 0.86) / 0.08, 0, 1));
+    pose.x = rinse.x;
+    pose.z = rinse.z;
+    pose.rimY = lerp(rinse.seatedY, hoverY, smoothstep((progress - 0.86) / 0.08, 0, 1));
     pose.stain = 0;
   } else {
     // Hold it up clean, then let it go.
-    pose.x = BASIN_X;
+    pose.x = rinse.x;
+    pose.z = rinse.z;
     pose.stain = 0;
     pose.fade = 1 - smoothstep((progress - 0.94) / 0.06, 0, 1);
   }
@@ -1151,24 +1252,178 @@ function cleaningPose(progress: number): CleaningPose {
   return pose;
 }
 
-/** The fresh-water jet that rises off the rinser into the glass. */
-function createRinseSpray(materials: NuMaterials): THREE.Mesh {
-  const spray = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.028, 0.005, 0.1, 20, 1, true),
-    materials.spray,
-  );
-  spray.name = 'NU_RinseSpray';
-  spray.position.set(BASIN_X, 0.375, 0);
-  return spray;
+// ---------------------------------------------------------------- rinse water
+
+/** Interior height of the demo glass, rim to base. */
+export const GLASS_INSIDE_HEIGHT = 0.148;
+
+/**
+ * One stream of water beads: a flight from `from` to where it lands on the
+ * glass, then a run down the wall at `wallRadius` round the glass axis, and
+ * past the rim a free drop drifting `drift` outwards (inwards if negative).
+ */
+export interface WaterStream {
+  from: THREE.Vector3;
+  /** Landing point; its height follows the glass when `landsOnBase`. */
+  to: THREE.Vector3;
+  wallRadius: number;
+  drift: number;
+  beads: number;
+  landsOnBase: boolean;
 }
+
+/** Where a device rinses: the glass axis, and the floor the water vanishes at. */
+export interface WaterScene {
+  glassX: number;
+  glassZ: number;
+  floorY: number;
+}
+
+/** Reusable objects for `placeWaterBeads`, so a frame allocates nothing. */
+export interface WaterScratch {
+  dummy: THREE.Object3D;
+  from: THREE.Vector3;
+  to: THREE.Vector3;
+  velocity: THREE.Vector3;
+  up: THREE.Vector3;
+}
+
+export function createWaterScratch(): WaterScratch {
+  return {
+    dummy: new THREE.Object3D(),
+    from: new THREE.Vector3(),
+    to: new THREE.Vector3(),
+    velocity: new THREE.Vector3(),
+    up: new THREE.Vector3(0, 1, 0),
+  };
+}
+
+/** One instanced sphere for every bead of every stream. */
+export function createWaterBeads(material: THREE.Material, streams: WaterStream[], name: string): THREE.InstancedMesh {
+  const count = streams.reduce((sum, stream) => sum + stream.beads, 0);
+  const beads = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 7, 5), material, count);
+  beads.name = name;
+  // The beads move every frame, so a bounding sphere from any one frame is stale.
+  beads.frustumCulled = false;
+  return beads;
+}
+
+/** The fraction of a number — staggers beads without a random generator. */
+function fract(value: number): number {
+  return value - Math.floor(value);
+}
+
+/**
+ * Moves every bead of every stream for the current moment. A bead flies from
+ * the stream's source to where it lands on the glass — a share of its life in
+ * proportion to the distance — then runs down the wall at the stream's radius,
+ * gathering speed and wobbling a little, and past the rim drops free, drifting
+ * out or in, until it reaches the floor and is reborn. Beads carry their own
+ * size and phase, so the water shimmers instead of pulsing, and everything
+ * scales with the strength of the rinse.
+ */
+export function placeWaterBeads(
+  beads: THREE.InstancedMesh,
+  streams: WaterStream[],
+  scene: WaterScene,
+  rimY: number,
+  time: number,
+  strength: number,
+  scratch: WaterScratch,
+): void {
+  const { dummy, from, to, velocity, up } = scratch;
+  const life = 1.1;
+  const baseY = rimY + GLASS_INSIDE_HEIGHT - 0.01;
+  let index = 0;
+
+  const place = (size: number, stretch: number): void => {
+    dummy.scale.set(size * strength, size * stretch * strength, size * strength);
+    dummy.updateMatrix();
+    beads.setMatrixAt(index++, dummy.matrix);
+  };
+
+  streams.forEach((stream, s) => {
+    from.copy(stream.from);
+    to.copy(stream.to);
+    if (stream.landsOnBase) to.y = baseY;
+    const theta = Math.atan2(to.z - scene.glassZ, to.x - scene.glassX);
+    const flight = Math.min(0.4, from.distanceTo(to) * 14);
+    velocity.subVectors(to, from);
+    if (velocity.lengthSq() > 0) velocity.normalize();
+
+    for (let j = 0; j < stream.beads; j++) {
+      const seed = s * 37 + j;
+      const t = fract(time / life + fract(seed * 0.6180339887));
+      const size = 0.0016 + 0.0012 * fract(seed * 0.37);
+
+      if (t < flight) {
+        // In the air: a bead on its way, drooping a little unless it is rising.
+        const u = t / flight;
+        dummy.position.lerpVectors(from, to, u);
+        dummy.position.y -= 0.004 * u * u * (1 - Math.abs(velocity.y));
+        dummy.quaternion.setFromUnitVectors(up, velocity);
+        place(size * 0.85, 1.6);
+        continue;
+      }
+
+      // On the glass: running down the wall, then dropping off the rim.
+      const run = (t - flight) * life;
+      const wobble = theta + 0.12 * Math.sin(run * 9 + seed);
+      let y = to.y - 0.16 * run - 0.7 * run * run;
+      let r = stream.wallRadius;
+      if (y < rimY) {
+        r += (rimY - y) * stream.drift;
+        y -= (rimY - y) * 0.6;
+      }
+      if (y < scene.floorY + 0.004) {
+        place(0, 1);
+        continue;
+      }
+      dummy.position.set(scene.glassX + r * Math.cos(wobble), y, scene.glassZ + r * Math.sin(wobble));
+      dummy.quaternion.identity();
+      place(size, 1.8);
+    }
+  });
+
+  beads.instanceMatrix.needsUpdate = true;
+}
+
+/**
+ * The NU® rinse: the telescope rinser sends the fresh water up the inside of
+ * the glass to its base, where it runs down the inside wall and off the rim
+ * into the basin.
+ */
+function createNuWaterStreams(): WaterStream[] {
+  const streams: WaterStream[] = [];
+  for (let i = 0; i < 10; i++) {
+    const theta = i * 2.399963;
+    const to = new THREE.Vector3(BASIN_X + 0.031 * Math.cos(theta), 0, 0.031 * Math.sin(theta));
+    streams.push({
+      // Six streams rise off the pin; four more simply run down the wall.
+      from: i < 6 ? new THREE.Vector3(BASIN_X, PIN_TOP, 0) : to.clone(),
+      to,
+      wallRadius: 0.031,
+      drift: -0.2,
+      beads: 12,
+      landsOnBase: true,
+    });
+  }
+  return streams;
+}
+
+/** The NU® rinses over the basin: the water vanishes on its floor. */
+const NU_WATER: WaterScene = { glassX: BASIN_X, glassZ: 0, floorY: BASIN_FLOOR_Y };
 
 // ------------------------------------------------------------------- exploded
 
-interface ExplodePart {
+export interface ExplodePart {
   object: THREE.Object3D;
   assembled: THREE.Vector3;
   offset: THREE.Vector3;
 }
+
+/** Named removable parts and how far each travels, in metres. */
+export type ExplodeOffsets = Array<[string, [number, number, number]]>;
 
 /**
  * How far each removable part travels in the exploded view, in metres.
@@ -1179,7 +1434,7 @@ interface ExplodePart {
  * you would lift them: holder, then centre brush, then the brush head; cone,
  * then pin; and the hose unplugs to the side.
  */
-const EXPLODE_OFFSETS: Array<[string, [number, number, number]]> = [
+const EXPLODE_OFFSETS: ExplodeOffsets = [
   // The holder and the cone start deep in their vessels, so they need the
   // longest travel just to clear the deck they came out of.
   ['NU_BrushHolder', [0, 0.14, 0]],
@@ -1190,9 +1445,10 @@ const EXPLODE_OFFSETS: Array<[string, [number, number, number]]> = [
   ['NU_Hose', [-0.1, -0.03, 0]],
 ];
 
-function collectExplodeParts(root: THREE.Object3D): ExplodePart[] {
+/** Finds each named part and remembers where it sits assembled. */
+export function collectExplodeParts(root: THREE.Object3D, offsets: ExplodeOffsets): ExplodePart[] {
   const parts: ExplodePart[] = [];
-  for (const [name, offset] of EXPLODE_OFFSETS) {
+  for (const [name, offset] of offsets) {
     const object = root.getObjectByName(name);
     if (!object) continue;
     parts.push({
@@ -1210,7 +1466,7 @@ function collectExplodeParts(root: THREE.Object3D): ExplodePart[] {
  * Builds the full device for a variant. `root` is anchored on y = 0 so the
  * viewer can drop it straight onto the studio floor.
  */
-export function createNuModel(variant: NuViewerVariant): NuModel {
+export function createNuModel(variant: NuDeviceVariant): NuModel {
   const root = new THREE.Group();
   root.name = `NU_${variant}`;
 
@@ -1258,8 +1514,9 @@ export function createNuModel(variant: NuViewerVariant): NuModel {
   demo.name = 'NU_CleaningDemo';
   demo.visible = false;
   const glass = createDemoGlass(materials);
-  const spray = createRinseSpray(materials);
-  demo.add(glass, spray);
+  const streams = createNuWaterStreams();
+  const water = createWaterBeads(materials.water, streams, 'NU_WaterBeads');
+  demo.add(glass, water);
   demo.traverse((object) => {
     object.castShadow = false;
     object.receiveShadow = false;
@@ -1268,13 +1525,17 @@ export function createNuModel(variant: NuViewerVariant): NuModel {
   device.add(demo);
 
   const buttonRestY = button.position.y;
-  const exploded = collectExplodeParts(root);
+  const exploded = collectExplodeParts(root, EXPLODE_OFFSETS);
   const brushHead = root.getObjectByName('NU_BrushHead');
+  const scratch = createWaterScratch();
+  /** The viewer's clock, as of the last tick — the water runs on it. */
+  let time = 0;
 
   return {
     root,
 
     tick(elapsed: number): void {
+      time = elapsed;
       // A slow breathing highlight on the fresh-water button: "Push the button!"
       const pulse = 0.06 + 0.06 * (0.5 + 0.5 * Math.sin(elapsed * 2.1));
       materials.button.emissiveIntensity = pulse;
@@ -1295,13 +1556,17 @@ export function createNuModel(variant: NuViewerVariant): NuModel {
       }
 
       demo.visible = true;
-      const pose = cleaningPose(THREE.MathUtils.clamp(progress, 0, 1));
+      const pose = cleaningPose(THREE.MathUtils.clamp(progress, 0, 1), NU_STATIONS);
 
-      glass.position.set(pose.x, pose.rimY, 0);
+      glass.position.set(pose.x, pose.rimY, pose.z);
       materials.glass.opacity = 0.3 * pose.fade;
+      materials.handle.opacity = 0.62 * pose.fade;
       materials.stain.opacity = pose.stain * pose.fade;
-      materials.spray.opacity = 0.34 * pose.spray * pose.fade;
-      spray.visible = pose.spray > 0.001;
+      materials.water.opacity = 0.92 * pose.spray * pose.fade;
+
+      const rinsing = pose.spray > 0.001;
+      water.visible = rinsing;
+      if (rinsing) placeWaterBeads(water, streams, NU_WATER, pose.rimY, time, pose.spray, scratch);
 
       // The bristles give way under the glass instead of spearing through it.
       const splay = 1 - 0.55 * pose.press;

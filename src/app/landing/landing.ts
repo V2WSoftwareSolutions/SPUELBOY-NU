@@ -3,15 +3,16 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { NU_CLEANING_STEPS, NU_PRODUCTS } from '../core/data/nu-products.data';
 import { Footer } from '../shared/footer/footer';
 import { GlassDoodle } from '../shared/glass-doodle/glass-doodle';
+import { AddonCards } from './addon-cards/addon-cards';
 import { NuConfigurationRequest, ProductShowcase } from './product-showcase/product-showcase';
 
 /**
- * The single landing page: hero, the two NU® devices in 3D, the cleaning
- * routine and the contact footer.
+ * The single landing page: hero, the two NU® devices and the Neptun T2000 in
+ * 3D, the add-on cards, the cleaning routine and the contact footer.
  */
 @Component({
   selector: 'app-landing',
-  imports: [ProductShowcase, Footer, GlassDoodle],
+  imports: [ProductShowcase, AddonCards, Footer, GlassDoodle],
   templateUrl: './landing.html',
   styleUrl: './landing.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -20,14 +20,15 @@
   </div>
 </section>
 
-<!-- The two products -->
+<!-- The three products: the NU® pair, then the CLASSIC & ECO Line Neptun below them -->
 <section class="products" aria-labelledby="products-title">
   <div class="page-container">
-    <p class="nu-label">The NU® generation</p>
-    <h2 class="section__title" id="products-title">Choose your NU®</h2>
+    <p class="nu-label">Glass washers in 3D</p>
+    <h2 class="section__title" id="products-title">Choose your SPÜLBOY®</h2>
     <p class="section__lead">
       100% flexible: NU® convinces as a portable device that works without a sink, and as a custom-made
-      built-in for counters where every centimetre counts.
+      built-in for counters where every centimetre counts. And the legendary Neptun T2000 from the
+      CLASSIC &amp; ECO Line washes straight in the sink.
     </p>
 
     @for (product of products; track product.id; let index = $index) {
@@ -37,6 +38,9 @@
         (quoteRequested)="onQuoteRequested($event)"
       />
     }
+
+    <!-- The consumables, below the last device -->
+    <app-addon-cards />
   </div>
 </section>
 

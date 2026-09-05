@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { describe, expect, it, beforeEach } from 'vitest';
 import { firstValueFrom } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
 import { ContactService, NuContactRequest } from './contact.service';
 
 const request: NuContactRequest = {
@@ -12,6 +13,7 @@ const request: NuContactRequest = {
   email: 'sam@example.com',
   phone: '',
   interest: 'nu-portable',
+  interestLabel: 'SPÜLBOY NU® PORTABLE',
   message: 'Please send a quote for two portable devices.',
 };
 
@@ -22,16 +24,36 @@ describe('ContactService', () => {
     });
   });
 
-  it('accepts the enquiry locally while no endpoint is configured', async () => {
+  it('posts the enquiry to the configured endpoint, label and all', async () => {
     const service = TestBed.inject(ContactService);
     const http = TestBed.inject(HttpTestingController);
 
-    const result = await firstValueFrom(service.submit(request));
+    const result = firstValueFrom(service.submit(request));
+    const call = http.expectOne(environment.contactEndpoint);
 
-    // Nothing is posted anywhere, and the result says so rather than claiming
-    // the message reached the sales team.
-    http.expectNone(() => true);
-    expect(result.delivered).toBe(false);
-    expect(result.reference).toMatch(/^NU-\d{6}-[A-Z0-9]{4}$/);
+    expect(call.request.method).toBe('POST');
+    expect(call.request.body).toMatchObject({
+      name: 'Sam Wirt',
+      email: 'sam@example.com',
+      interest: 'nu-portable',
+      interestLabel: 'SPÜLBOY NU® PORTABLE',
+    });
+
+    call.flush({ reference: 'NU-260905-4F2A' });
+    expect(await result).toEqual({ reference: 'NU-260905-4F2A', delivered: true });
+    http.verify();
+  });
+
+  it('fails loudly when the server cannot deliver, rather than claiming success', async () => {
+    const service = TestBed.inject(ContactService);
+    const http = TestBed.inject(HttpTestingController);
+
+    const result = firstValueFrom(service.submit(request));
+    http
+      .expectOne(environment.contactEndpoint)
+      .flush({ error: 'The enquiry could not be delivered.' }, { status: 502, statusText: 'Bad Gateway' });
+
+    await expect(result).rejects.toBeTruthy();
+    http.verify();
   });
 });

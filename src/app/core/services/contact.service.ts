@@ -10,7 +10,10 @@ export interface NuContactRequest {
   company: string;
   email: string;
   phone: string;
+  /** The chosen option's id, e.g. `nu-portable`. */
   interest: string;
+  /** That option's label, so the e-mail reads as the visitor saw it. */
+  interestLabel: string;
   message: string;
   /** Product the visitor was looking at when they asked for the quote. */
   product?: string;
@@ -24,10 +27,10 @@ export interface NuContactResult {
 /**
  * Sends contact / quote requests.
  *
- * With `environment.contactEndpoint` empty the request is accepted locally and
- * flagged `delivered: false`, so the UI can tell the visitor honestly that we
- * captured the enquiry but that the mail route is still being connected —
- * rather than pretending a message was sent to a backend that does not exist.
+ * By default this posts to the app's own `/api/contact`, which e-mails the
+ * enquiry to the sales mailbox. With `environment.contactEndpoint` empty the
+ * request resolves locally and is flagged `delivered: false`, so a build with
+ * no backend never pretends a message was actually sent.
  */
 @Injectable({ providedIn: 'root' })
 export class ContactService {

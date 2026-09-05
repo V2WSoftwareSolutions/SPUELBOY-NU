@@ -15,7 +15,7 @@
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  height: 4.5rem;
+  height: 5rem;
 }
 
 /* ---------------------------------------------------------------------- logo */
@@ -36,15 +36,17 @@
   color: var(--color-nu-heading);
 }
 
+/* The lock-up carries the header: it fills all but a tenth of the bar's
+   height, top and bottom. The artwork sets its own width from there. */
 .logo img {
   display: block;
-  height: 2.6rem;
+  height: 3.75rem;
   width: auto;
 }
 
 @media (max-width: 400px) {
   .logo img {
-    height: 2.2rem;
+    height: 3.1rem;
   }
 }
 

@@ -4,23 +4,19 @@
 
 .footer {
   scroll-margin-top: 5rem;
-  padding-block: 4rem 2rem;
+  padding-top: 4rem;
   border-top: 1px solid var(--color-nu-hairline);
   background:
     radial-gradient(90% 70% at 15% 0%, color-mix(in srgb, var(--color-nu-orange) 8%, transparent), transparent 60%),
     linear-gradient(180deg, var(--color-nu-paper) 0%, var(--color-nu-mist) 100%);
 }
 
+/* The form has the top of the footer to itself; the offices moved down
+   into the band. */
 .footer__grid {
   display: grid;
   gap: 3rem;
-}
-
-@media (min-width: 1024px) {
-  .footer__grid {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-    gap: 4rem;
-  }
+  max-width: 52rem;
 }
 
 .footer__title {
@@ -58,9 +54,27 @@
   }
 }
 
+/* min-width: 0 lets a grid column shrink below its content — without it a
+   native select, whose intrinsic width is its longest option, pushes a phone
+   layout wider than the screen. */
 .field {
   display: grid;
+  align-content: start;
   gap: 0.35rem;
+  min-width: 0;
+}
+
+.field .nu-field {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* iOS zooms the page into any field set below 16px; on phones the fields
+   simply use that size. */
+@media (max-width: 639px) {
+  .field .nu-field {
+    font-size: 1rem;
+  }
 }
 
 .field label {
@@ -91,10 +105,6 @@
   accent-color: var(--color-nu-orange);
 }
 
-.consent a {
-  color: var(--color-nu-orange);
-}
-
 .form__submit {
   display: flex;
   flex-wrap: wrap;
@@ -106,97 +116,205 @@
   display: none;
 }
 
-.form__status p {
-  padding: 0.85rem 1rem;
-  border-radius: 0.9rem;
-  font-size: 0.875rem;
-  line-height: 1.55;
+/* ------------------------------------------------------------------ notice */
+
+/* One card for both outcomes: a round icon badge, a title with one line under
+   it, and a dismiss button. Colour is the only thing that changes. */
+.notice {
+  --notice-tone: var(--color-nu-leaf);
+  --notice-ink: #4c7314;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 1rem 1rem 1rem 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--notice-tone) 45%, transparent);
+  border-left: 4px solid var(--notice-tone);
+  border-radius: 1rem;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--notice-tone) 14%, var(--color-nu-paper)),
+    color-mix(in srgb, var(--notice-tone) 5%, var(--color-nu-paper))
+  );
+  box-shadow: 0 8px 24px rgba(20, 24, 28, 0.06);
+  animation: notice-in 0.3s ease both;
 }
 
-.form__status--ok {
-  border: 1px solid var(--color-nu-leaf);
-  background: color-mix(in srgb, var(--color-nu-leaf) 14%, transparent);
-  color: var(--color-nu-heading);
+.notice--error {
+  --notice-tone: var(--color-nu-alert);
+  --notice-ink: var(--color-nu-alert);
 }
 
-.form__status--error {
-  border: 1px solid color-mix(in srgb, var(--color-nu-alert) 45%, transparent);
-  background: color-mix(in srgb, var(--color-nu-alert) 8%, transparent);
-  color: var(--color-nu-alert);
-}
-
-/* ------------------------------------------------------------------ company */
-
-.footer__company-name {
-  margin-top: 0.5rem;
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: var(--color-nu-heading);
-}
-
-.footer__address {
-  margin-top: 0.75rem;
-  font-style: normal;
-  line-height: 1.6;
-  color: var(--color-nu-muted);
-}
-
-.footer__contacts {
-  margin-top: 1rem;
+.notice__badge {
+  flex: none;
   display: grid;
-  gap: 0.35rem;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--notice-tone) 20%, var(--color-nu-paper));
+  color: var(--notice-ink);
 }
 
-.footer__contacts a {
-  color: var(--color-nu-body);
-  text-decoration: none;
+.notice__badge svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.footer__contacts a:hover {
-  color: var(--color-nu-orange);
-  text-decoration: underline;
+.notice__body {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0.15rem;
 }
 
-.footer__claim {
-  margin: 1.75rem 0 0;
-  padding-left: 1rem;
-  border-left: 2px solid var(--color-nu-orange);
-}
-
-.footer__claim p {
-  font-size: 1.1rem;
+.notice__title {
+  font-size: 0.9375rem;
   font-weight: 700;
   color: var(--color-nu-heading);
 }
 
-.footer__claim cite {
-  display: block;
-  margin-top: 0.35rem;
-  font-size: 0.8125rem;
-  font-style: normal;
-  color: var(--color-nu-muted);
+.notice__text {
+  margin-top: 0.2rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-nu-body);
 }
 
-.footer__jump {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1.75rem;
-}
-
-.footer__jump a {
-  display: block;
-  padding: 0.35rem 0.8rem;
-  border: 1px solid var(--color-nu-hairline);
+.notice__close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: -0.15rem -0.25rem 0 0;
+  border: 0;
   border-radius: 999px;
-  font-size: 0.75rem;
+  background: transparent;
   color: var(--color-nu-muted);
-  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
-.footer__jump a:hover {
-  border-color: var(--color-nu-orange);
-  color: var(--color-nu-orange-deep);
+.notice__close:hover {
+  background: color-mix(in srgb, var(--notice-tone) 18%, transparent);
+  color: var(--color-nu-heading);
+}
+
+.notice__close svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------- band */
+
+/* The band under the form, edge to edge, in the same orange-to-white wash
+   as the price bars: the logo, one orange button
+   per device that scrolls to it, and both offices side by side. */
+.band {
+  margin-top: 4rem;
+  padding-block: 3rem 1.5rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-nu-orange) 22%, var(--color-nu-hairline));
+  background:
+    radial-gradient(120% 150% at 0% 0%, color-mix(in srgb, var(--color-nu-orange) 18%, transparent), transparent 55%),
+    radial-gradient(90% 130% at 100% 100%, color-mix(in srgb, var(--color-nu-sky) 26%, transparent), transparent 60%),
+    linear-gradient(120deg, var(--color-nu-orange-soft) 0%, var(--color-nu-paper) 52%, var(--color-nu-mist) 100%);
+  color: var(--color-nu-heading);
+}
+
+.band__grid {
+  display: grid;
+  gap: 2.25rem 2rem;
+  align-items: start;
+}
+
+@media (min-width: 640px) {
+  .band__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .band__logo {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1024px) {
+  .band__grid {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1.1fr);
+    gap: 3rem;
+  }
+
+  .band__logo {
+    grid-column: auto;
+  }
+}
+
+.band__logo {
+  display: block;
+  width: fit-content;
+  text-decoration: none;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--color-nu-heading);
+}
+
+.band__logo img {
+  display: block;
+  height: 6.5rem;
+  width: auto;
+}
+
+.band__heading {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-nu-orange);
+}
+
+.band__products ul {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.band__office {
+  font-style: normal;
+  line-height: 1.6;
+}
+
+.band__office-name {
+  margin-top: 1rem;
+  margin-bottom: 0.35rem;
+  font-weight: 700;
+}
+
+.band__office span {
+  display: block;
 }
 
 .footer__bottom {
@@ -204,7 +322,7 @@
   flex-wrap: wrap;
   gap: 0.5rem 1.5rem;
   justify-content: space-between;
-  margin-top: 3rem;
+  margin-top: 2.5rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--color-nu-hairline);
   font-size: 0.75rem;

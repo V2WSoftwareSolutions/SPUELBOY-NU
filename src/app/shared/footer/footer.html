@@ -16,12 +16,20 @@
                 class="nu-field"
                 type="text"
                 autocomplete="name"
+                maxlength="80"
                 formControlName="name"
+                (input)="sanitize('name', $event)"
                 [attr.aria-invalid]="invalid('name')"
                 [attr.aria-describedby]="invalid('name') ? 'contact-name-error' : null"
               />
               @if (invalid('name')) {
-                <p class="field__error" id="contact-name-error">Please tell us your name.</p>
+                <p class="field__error" id="contact-name-error">
+                  @if (form.controls.name.hasError('name')) {
+                    Letters, spaces and hyphens only, please.
+                  } @else {
+                    Please tell us your name.
+                  }
+                </p>
               }
             </div>
 
@@ -32,6 +40,7 @@
                 class="nu-field"
                 type="text"
                 autocomplete="organization"
+                maxlength="120"
                 formControlName="company"
               />
             </div>
@@ -45,12 +54,16 @@
                 class="nu-field"
                 type="email"
                 autocomplete="email"
+                inputmode="email"
+                maxlength="120"
                 formControlName="email"
                 [attr.aria-invalid]="invalid('email')"
                 [attr.aria-describedby]="invalid('email') ? 'contact-email-error' : null"
               />
               @if (invalid('email')) {
-                <p class="field__error" id="contact-email-error">Please enter a valid e-mail address.</p>
+                <p class="field__error" id="contact-email-error">
+                  Please enter a valid e-mail address, e.g. name&#64;company.com.
+                </p>
               }
             </div>
 
@@ -61,20 +74,28 @@
                 class="nu-field"
                 type="tel"
                 autocomplete="tel"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="15"
                 formControlName="phone"
+                (input)="sanitize('phone', $event)"
+                [attr.aria-invalid]="invalid('phone')"
+                [attr.aria-describedby]="invalid('phone') ? 'contact-phone-error' : null"
               />
+              @if (invalid('phone')) {
+                <p class="field__error" id="contact-phone-error">Digits only, please — 6 to 15 of them.</p>
+              }
             </div>
           </div>
 
           <div class="field">
             <label for="contact-interest">I am interested in</label>
-            <select id="contact-interest" class="nu-field" formControlName="interest">
-              @for (product of products; track product.id) {
-                <option [value]="product.id">{{ product.name }}</option>
-              }
-              <option value="both">Both devices</option>
-              <option value="accessories">Tabs, brushes &amp; accessories</option>
-            </select>
+            <app-nu-select
+              inputId="contact-interest"
+              label="I am interested in"
+              formControlName="interest"
+              [options]="interests"
+            />
           </div>
 
           <div class="field">
@@ -83,6 +104,7 @@
               id="contact-message"
               class="nu-field"
               rows="5"
+              maxlength="2000"
               formControlName="message"
               [attr.aria-invalid]="invalid('message')"
               [attr.aria-describedby]="invalid('message') ? 'contact-message-error' : null"
@@ -97,10 +119,8 @@
           <div class="field field--consent">
             <label class="consent">
               <input type="checkbox" formControlName="consent" [attr.aria-invalid]="invalid('consent')" />
-              <span>
-                I agree that my details may be used to answer my enquiry.
-                <a [href]="company.websiteHref + '/datenschutz'" target="_blank" rel="noopener">Privacy notice</a>.
-              </span>
+              <!-- Plain text until a privacy page exists to link to. -->
+              <span>I agree that my details may be used to answer my enquiry. Privacy notice.</span>
             </label>
             @if (invalid('consent')) {
               <p class="field__error">Please confirm this to continue.</p>
@@ -117,54 +137,74 @@
           <!-- Status is announced to assistive tech as soon as it changes. -->
           <div class="form__status" role="status" aria-live="polite">
             @if (state() === 'sent') {
-              <p class="form__status--ok">
-                Thank you — your request is recorded under reference <strong>{{ reference() }}</strong>.
-                @if (!delivered()) {
-                  The delivery route to our sales team is still being connected, so please also reach us
-                  on {{ company.phone }} for anything urgent.
-                }
-              </p>
+              <div class="notice notice--ok">
+                <span class="notice__badge" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="m6 12.5 4 4 8-9" /></svg>
+                </span>
+                <div class="notice__body">
+                  <p class="notice__title">Request sent</p>
+                  <p class="notice__text">Thank you for showing your interest. Our team will contact you soon.</p>
+                </div>
+                <button type="button" class="notice__close" aria-label="Dismiss this message" (click)="dismissStatus()">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" /></svg>
+                </button>
+              </div>
             } @else if (state() === 'error') {
-              <p class="form__status--error">
-                Your request could not be sent. Please check the highlighted fields or call us on
-                {{ company.phone }}.
-              </p>
+              <div class="notice notice--error">
+                <span class="notice__badge" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 8v5m0 3.5v.5M4.6 19h14.8a1.5 1.5 0 0 0 1.3-2.25l-7.4-12.8a1.5 1.5 0 0 0-2.6 0L3.3 16.75A1.5 1.5 0 0 0 4.6 19Z" /></svg>
+                </span>
+                <div class="notice__body">
+                  <p class="notice__title">Please check the form</p>
+                  <p class="notice__text">
+                    Your request could not be sent. Fix the highlighted fields, or call us on
+                    {{ company.phone }}.
+                  </p>
+                </div>
+                <button type="button" class="notice__close" aria-label="Dismiss this message" (click)="dismissStatus()">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" /></svg>
+                </button>
+              </div>
             }
           </div>
         </form>
       </section>
 
-      <!-- Company details -->
-      <section class="footer__company" aria-labelledby="company-title">
-        <p class="nu-label">Manufacturer</p>
-        <h2 class="footer__company-name" id="company-title">{{ company.name }}</h2>
-        <address class="footer__address">
-          {{ company.street }}<br />
-          {{ company.city }}
-        </address>
-
-        <ul class="footer__contacts">
-          <li><a [href]="'tel:' + company.phoneHref">{{ company.phone }}</a></li>
-          <li><a [href]="'mailto:' + company.email">{{ company.email }}</a></li>
-          <li><a [href]="company.websiteHref" target="_blank" rel="noopener">{{ company.website }}</a></li>
-        </ul>
-
-        <blockquote class="footer__claim">
-          <p>“{{ company.claim }}”</p>
-          <cite>Your beer deserves it. And your customers will love it.</cite>
-        </blockquote>
-
-        <ul class="footer__jump">
-          @for (product of products; track product.id) {
-            <li><a [href]="'#' + product.slug">{{ product.name }}</a></li>
-          }
-        </ul>
-      </section>
     </div>
+  </div>
 
-    <div class="footer__bottom">
-      <p>© {{ year }} {{ company.name }} · SPÜLBOY® and NU® are registered trademarks.</p>
-      <p>DIN EN ISO 9001:2015 · DIN 6653-3 · 100% made in Germany</p>
+  <!-- The grey band: the logo, one button per device, and both offices -->
+  <div class="band">
+    <div class="page-container">
+      <div class="band__grid">
+        <a class="band__logo" href="#top" aria-label="SPÜLBOY® ORIGINAL — back to the top of the page">
+          <img src="/spulboy-logo.png" alt="SPÜLBOY ORIGINAL" width="760" height="433" loading="lazy" />
+        </a>
+
+        <nav class="band__products" aria-label="Our products">
+          <p class="band__heading">Our products</p>
+          <ul>
+            @for (product of products; track product.id) {
+              <li><a class="nu-btn-primary band__product" [href]="'#' + product.slug">{{ product.name }}</a></li>
+            }
+          </ul>
+        </nav>
+
+        @for (office of offices; track office.id) {
+          <address class="band__office">
+            <p class="band__heading">{{ office.badge }}</p>
+            <p class="band__office-name">{{ office.name }}</p>
+            @for (line of office.lines; track line) {
+              <span>{{ line }}</span>
+            }
+          </address>
+        }
+      </div>
+
+      <div class="footer__bottom">
+        <p>© {{ year }} {{ company.name }} · SPÜLBOY® and NU® are registered trademarks.</p>
+        <p>DIN EN ISO 9001:2015 · DIN 6653-3 · 100% made in Germany</p>
+      </div>
     </div>
   </div>
 </footer>

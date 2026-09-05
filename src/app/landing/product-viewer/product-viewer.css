@@ -23,6 +23,16 @@
   }
 }
 
+/* On phones the 320px floor would, through the aspect ratio, make the stage
+   wider than the screen and push the whole column out of it; a square stage
+   with no floor stays inside the column and is still a good size. */
+@media (max-width: 639px) {
+  .stage {
+    min-height: 0;
+    aspect-ratio: 1 / 1;
+  }
+}
+
 .stage__canvas {
   display: block;
   width: 100%;

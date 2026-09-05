@@ -6,6 +6,10 @@
 /out-tsc
 /bazel-out
 
+# Secrets — the SMTP password lives here
+.env
+.env.local
+
 # Node
 /node_modules
 npm-debug.log

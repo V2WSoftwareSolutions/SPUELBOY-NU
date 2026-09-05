@@ -21,22 +21,32 @@
         }
       </ul>
 
-      <div class="showcase__price">
-        <div>
-          <p class="nu-label">Your price</p>
-          <p class="showcase__amount">{{ priceLabel() }}</p>
-          <p class="showcase__price-note">
+      <!-- Price bar: the price and its note, the calls to action and the catalogue -->
+      <div class="price">
+        <div class="price__summary">
+          <p class="price__amount">{{ priceLabel() }}</p>
+          <p class="price__note">
             @if (hasListPrice()) {
               {{ product().pricing.unit }} ·
             }
             {{ product().pricing.note }}
           </p>
         </div>
-        <div class="showcase__actions">
-          <button type="button" class="nu-btn-primary" (click)="requestQuote()">
+        <div class="price__actions">
+          <button type="button" class="nu-btn-primary price__btn" (click)="requestQuote()">
             Request a quote
           </button>
-          <a class="nu-btn-ghost" href="#contact">Talk to a specialist</a>
+          <a class="nu-btn-ghost price__btn" href="#contact">Talk to a specialist</a>
+          <a
+            class="nu-btn-ghost price__btn price__download"
+            [href]="catalogue.href"
+            [attr.download]="catalogue.fileName"
+            type="application/pdf"
+            [attr.aria-label]="'Download the ' + catalogue.label + ' (PDF)'"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14" /></svg>
+            <span>{{ catalogue.shortLabel }}</span>
+          </a>
         </div>
       </div>
 

@@ -1,0 +1,28 @@
+<section class="addons" aria-labelledby="addons-title">
+  <p class="nu-label">SPÜLBOY® add-ons</p>
+  <h2 class="addons__title" id="addons-title">Always use the original</h2>
+  <p class="addons__lead">
+    The consumables every SPÜLBOY® runs on — tested by independent institutes, legally and
+    officially impeccable.
+  </p>
+
+  <ul class="addons__grid">
+    @for (addon of addons; track addon.id) {
+      <li class="card">
+        <div class="card__spotlight">
+          <img
+            class="card__image"
+            [src]="addon.image"
+            [alt]="addon.alt"
+            width="400"
+            height="400"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+        <h3 class="card__name">{{ addon.name }}</h3>
+        <p class="card__pack">{{ addon.description }}</p>
+      </li>
+    }
+  </ul>
+</section>

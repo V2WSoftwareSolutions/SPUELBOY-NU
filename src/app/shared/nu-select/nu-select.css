@@ -1,0 +1,276 @@
+:host {
+  display: block;
+}
+
+.select {
+  position: relative;
+}
+
+/* ---------------------------------------------------------------- trigger */
+
+/* Reuses the field skin from styles.css; only the layout inside is ours. */
+.select__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.select__trigger:hover {
+  border-color: color-mix(in srgb, var(--color-nu-orange) 55%, var(--color-nu-hairline));
+}
+
+.select--open .select__trigger {
+  border-color: var(--color-nu-orange);
+  box-shadow: 0 0 0 3px var(--color-nu-orange-soft);
+}
+
+.select__trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.select__value {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.select__value--placeholder {
+  color: var(--color-nu-muted);
+}
+
+.select__chevron {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: var(--color-nu-heading);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s ease;
+}
+
+.select--open .select__chevron {
+  transform: rotate(180deg);
+}
+
+/* ------------------------------------------------------------------ panel */
+
+.select__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: transparent;
+}
+
+/* On desktop the list hangs under the trigger. */
+.select__panel {
+  position: absolute;
+  z-index: 61;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  padding: 0.4rem;
+  border: 1px solid var(--color-nu-hairline);
+  border-radius: 1rem;
+  background: var(--color-nu-paper);
+  box-shadow:
+    0 2px 6px rgba(20, 24, 28, 0.06),
+    0 18px 40px rgba(20, 24, 28, 0.14);
+  animation: select-drop 0.16s ease both;
+}
+
+.select__handle,
+.select__title {
+  display: none;
+}
+
+/* Hangs above the field when the page has run out of room below it; the
+   height itself is measured in the component and set inline. */
+.select--up .select__panel {
+  top: auto;
+  bottom: calc(100% + 0.4rem);
+  animation-name: select-lift;
+}
+
+.select__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 18rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.select__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.65rem;
+  font-size: 0.9375rem;
+  color: var(--color-nu-body);
+  cursor: pointer;
+}
+
+.select__option-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.select__option--active {
+  background: var(--color-nu-orange-soft);
+  color: var(--color-nu-orange-deep);
+}
+
+.select__option[aria-selected='true'] {
+  font-weight: 600;
+  color: var(--color-nu-heading);
+}
+
+.select__option--active[aria-selected='true'] {
+  color: var(--color-nu-orange-deep);
+}
+
+.select__check {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: var(--color-nu-orange);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@keyframes select-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes select-lift {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* ------------------------------------------------------ tablets and touch */
+
+/* Tablets keep the anchored panel but are held and tapped, so their rows are
+   sized for a finger. Width covers the common tablet range; the pointer query
+   catches touch laptops and larger tablets beyond it. */
+@media (min-width: 640px) and (max-width: 1023px), (pointer: coarse) and (min-width: 640px) {
+  .select__trigger {
+    font-size: 1rem;
+  }
+
+  .select__option {
+    padding: 0.85rem;
+    font-size: 1rem;
+  }
+}
+
+/* --------------------------------------------------------------- phones */
+
+/* On a phone the list rises as a sheet from the bottom of the screen, over a
+   dimmed page: bigger targets, a heading that repeats the field's label, and
+   room for a thumb. */
+@media (max-width: 639px) {
+  /* iOS zooms the page into any control whose text is under 16px. The footer's
+     own rule cannot reach in here — its styles are scoped to that component —
+     so the trigger sets its own size. */
+  .select__trigger {
+    font-size: 1rem;
+  }
+
+  .select__backdrop {
+    background: rgba(20, 24, 28, 0.42);
+    backdrop-filter: blur(2px);
+    animation: select-dim 0.2s ease both;
+  }
+
+  /* The sheet ignores the measured placement entirely. */
+  .select--up .select__panel,
+  .select__panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    animation-name: select-rise;
+    padding: 0.6rem 0.75rem calc(0.9rem + env(safe-area-inset-bottom));
+    border: 0;
+    border-radius: 1.5rem 1.5rem 0 0;
+    box-shadow: 0 -12px 40px rgba(20, 24, 28, 0.2);
+    animation: select-rise 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .select__handle {
+    display: block;
+    width: 2.5rem;
+    height: 0.3rem;
+    margin: 0 auto 0.6rem;
+    border-radius: 999px;
+    background: var(--color-nu-hairline);
+  }
+
+  .select__title {
+    display: block;
+    padding: 0.2rem 0.85rem 0.6rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-nu-orange);
+  }
+
+  .select__list {
+    max-height: min(60vh, 24rem);
+  }
+
+  .select__option {
+    padding: 0.95rem 0.85rem;
+    font-size: 1rem;
+  }
+
+  /* There is room to wrap in a sheet, so a long name is never cut short. */
+  .select__option-label {
+    white-space: normal;
+  }
+}
+
+@keyframes select-rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes select-dim {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .select__panel,
+  .select__backdrop,
+  .select__chevron {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,16 +1,20 @@
 /**
  * Domain types for the SPÜLBOY NU® landing page.
  *
- * The page renders exactly two products (PORTABLE and BUILT-IN). Everything a
- * business user is expected to edit — copy, specifications and pricing — lives
+ * The page renders three products — the two NU® devices (PORTABLE and
+ * BUILT-IN) and the CLASSIC & ECO Line Neptun T2000. Everything a business
+ * user is expected to edit — copy, specifications and pricing — lives
  * in `core/data/nu-products.data.ts` and is typed by the interfaces below, so
  * the UI never has to be touched for a content change.
  */
 
-export type NuProductId = 'nu-portable' | 'nu-built-in';
+export type NuProductId = 'nu-portable' | 'nu-built-in' | 'neptun-t2000';
 
-/** Which procedural/GLTF body the 3D viewer builds for a product. */
-export type NuViewerVariant = 'portable' | 'built-in';
+/**
+ * Which procedural/GLTF body the 3D viewer builds for a product: one of the
+ * two NU® bodies, or the CLASSIC & ECO Line Neptun T2000.
+ */
+export type NuViewerVariant = 'portable' | 'built-in' | 'neptun';
 
 export interface NuSpecItem {
   label: string;
@@ -77,4 +81,32 @@ export interface NuProduct {
   specGroups: NuSpecGroup[];
   pricing: NuPricing;
   viewer: NuViewerConfig;
+}
+
+/** A consumable shown as a small card under the devices — pictured, not for sale online. */
+export interface NuAddon {
+  id: string;
+  name: string;
+  /** The catalogue's pack line, e.g. "500 g can (100 pieces) for 100 fillings". */
+  description: string;
+  /** Cut-out product photo (transparent background) served from `public/`. */
+  image: string;
+  alt: string;
+}
+
+/** One of the addresses in the footer; a contact row renders only when its field is set. */
+export interface NuOffice {
+  id: 'india' | 'germany';
+  /** Text of the switch pill. */
+  tab: string;
+  /** Small badge beside the name, e.g. "India office" or "Manufacturer". */
+  badge: string;
+  name: string;
+  /** Address lines, one per line. */
+  lines: string[];
+  phone?: string;
+  phoneHref?: string;
+  email?: string;
+  website?: string;
+  websiteHref?: string;
 }

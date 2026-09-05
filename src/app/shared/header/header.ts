@@ -20,6 +20,7 @@ export class Header {
     { href: '#top', label: 'Home' },
     { href: '#nu-portable', label: 'NU® Portable' },
     { href: '#nu-built-in', label: 'NU® Built-in' },
+    { href: '#neptun-t2000', label: 'Neptun T2000' },
     { href: '#contact', label: 'Contact' },
   ];
 

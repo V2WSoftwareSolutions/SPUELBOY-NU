@@ -1,4 +1,4 @@
-import { NuProduct, NuSpecGroup } from '../models/product.model';
+import { NuAddon, NuOffice, NuProduct, NuSpecGroup } from '../models/product.model';
 
 /**
  * Content source of truth for the landing page.
@@ -9,6 +9,11 @@ import { NuProduct, NuSpecGroup } from '../models/product.model';
  * Outer dimensions, the counter cut-out and the brush pot diameter come from the
  * manufacturer dimension drawing and are mirrored by the 3D model in
  * `core/three/nu-model.factory.ts` — change them in both places together.
+ *
+ * The Neptun T2000 follows the CLASSIC & ECO Line page of the SPÜLBOY® product
+ * catalogue and the manufacturer's parts diagram; its pot diameter, internal
+ * glass height and outer dimensions are mirrored by
+ * `core/three/neptun-model.factory.ts` in the same way.
  *
  * DATA TODO — the brochure does not publish figures for the following, so they
  * are marked "On request" / null until Schäfer Produkte GmbH confirms them:
@@ -253,6 +258,204 @@ export const NU_PRODUCTS: NuProduct[] = [
       ],
     },
   },
+  {
+    id: 'neptun-t2000',
+    slug: 'neptun-t2000',
+    name: 'Neptun T2000',
+    eyebrow: 'CLASSIC & ECO Line',
+    tagline: 'Legendary! The open rinsing system for the sink.',
+    summary:
+      'With an open rinsing system, this in-sink model is ideal for anyone who wants to wash glasses economically and easily: three suction feet hold it on the sink floor, the brush pot pre-washes and the 2-step head valve clear-rinses.',
+    highlights: [
+      'Open rinsing system — the rinse water drains straight into the sink',
+      'In-sink model: three suction feet hold it firmly on the sink floor',
+      'Ø 18 cm brush pot with brush strip, bayonet middle brush and brush head',
+      '2-step head valve and two perforated spray poles — the glass is rinsed inside and all round',
+      'Cleans without electricity — original SPÜLBOY® tabs for 100% bacteria- and 99.9% virus-free glasses',
+    ],
+    includedInBox: [
+      'Neptun T2000 device with glass protection ring and both perforated spray poles',
+      'CLASSIC & ECO brush strip, bayonet middle brush and brush head',
+      '2-step head valve with valve tube',
+      'Down tube with back-flow preventer',
+      'Connection hose easy clix® with angle connection',
+      'Three suction feet with screws',
+    ],
+    specGroups: [
+      {
+        title: 'Cleaning principle',
+        items: [
+          { label: 'Method', value: 'Manual brush cleaning with cold fresh water — no electricity required' },
+          {
+            label: 'Rinsing system',
+            value: 'Open rinsing system',
+            note: 'In-sink model: the rinse water drains freely into the sink — there is no pre-rinse basin to empty.',
+          },
+          {
+            label: 'Head valve',
+            value: '2-step head valve with valve tube',
+            note: 'Guarantees perfect fresh-water rinsing — press the glass onto the valve and the water rises.',
+          },
+          {
+            label: 'Spray poles',
+            value: 'Two perforated spray poles — on the flank of the pot and on the far side of the rinsing cone',
+            note: 'Spray the outside of the glass from both sides while the head valve rinses the inside.',
+          },
+          { label: 'Water inlet', value: 'Down tube with back-flow preventer' },
+          { label: 'Brushes', value: 'CLASSIC & ECO brush strip, bayonet middle brush and standard brush head' },
+          { label: 'Glass protection', value: 'Glass protection ring rolled over the pot rim' },
+          { label: 'Internal glass height', value: '23.5 cm' },
+        ],
+      },
+      {
+        title: 'Design & build',
+        items: [
+          { label: 'Line', value: 'CLASSIC & ECO Line' },
+          { label: 'Brush pot', value: 'Ø 18 cm' },
+          { label: 'Dimensions (L × W × H)', value: '33 × 19 × 33 cm' },
+          {
+            label: 'Mounting',
+            value: 'Three suction feet with screw',
+            note: 'Stands in the sink — the suction feet hold it on the sink floor.',
+          },
+          { label: 'Connection', value: 'CLASSIC standard hose with easy clix® and angle connection easy clix®' },
+          { label: 'Origin', value: '100% made in Germany' },
+          { label: 'Weight', value: ON_REQUEST, note: 'DATA TODO' },
+          { label: 'Article number', value: ON_REQUEST, note: 'DATA TODO' },
+        ],
+      },
+      {
+        title: 'Certification & hygiene',
+        items: [
+          { label: 'Company certification', value: 'DIN EN ISO 9001:2015' },
+          { label: 'Device certification', value: 'DIN 6653-3' },
+          {
+            label: 'Cleaning result',
+            value: 'Original SPÜLBOY® glass washing tabs — 100% bacteria- and 99.9% virus-free glasses',
+          },
+          { label: 'Brush care', value: 'CLASSIC brush sanitizer powder — beer slime remover for the brushes' },
+        ],
+      },
+      {
+        title: 'Spare parts & accessories',
+        items: [
+          {
+            label: 'Brush set',
+            value: 'CLASSIC brush set — brush strip & middle brush',
+            note: 'Fits the Neptun T2000 and the Twin-Go T.',
+          },
+          { label: 'Brush head', value: 'Brush head standard — pack of 10' },
+          { label: 'Consumables', value: 'CLASSIC glass washing tablets & brush sanitizer powder' },
+          { label: 'Hoses', value: 'CLASSIC standard hose with easy clix® and CLASSIC drain hose' },
+          { label: 'Head valve', value: '2-step head valve — guarantees perfect fresh-water rinsing' },
+        ],
+      },
+      {
+        title: 'Sustainability & economy',
+        items: [
+          { label: 'Energy', value: 'Cleaning without electricity' },
+          { label: 'Water', value: 'Cold fresh-water rinse only — no hot water, no dishwasher cycle' },
+          { label: 'Economy', value: 'Wash economically and easily — the legendary open system of the CLASSIC & ECO Line' },
+        ],
+      },
+    ],
+    pricing: {
+      currency: 'EUR',
+      // DATA TODO — set the net list price to switch off the "price on request" treatment.
+      amount: null,
+      unit: 'per device, net',
+      note: 'Includes the brush set, the head valve, the down tube and the connection hose with easy clix®.',
+      quoteOnly: true,
+    },
+    viewer: {
+      variant: 'neptun',
+      // Drop a CAD export at `public/models/neptun-t2000.glb` and point this at it.
+      modelUrl: null,
+      posterUrl: null,
+      // The pot rim sits at y = 0.33; the pot stands 70 mm left of the origin so
+      // the tongue with the two cones balances it.
+      cameraTargetY: 0.17,
+      hotspots: [
+        {
+          id: 'brushes',
+          label: 'Brush head & bayonet middle brush',
+          description:
+            'The radial head cleans the rim, the bayonet middle brush the inside and the brush strip round the wall the outside — 3–5 rapid strokes, don’t turn.',
+          position: [-0.07, 0.325, 0.02],
+        },
+        {
+          id: 'ring',
+          label: 'Glass protection ring',
+          description: 'The charcoal ring rolled over the Ø 18 cm pot rim cushions the glass on its way in and out.',
+          position: [-0.07, 0.328, 0.095],
+        },
+        {
+          id: 'valve',
+          label: '2-step head valve',
+          description:
+            'Press the glass onto the valve at the tip of the rinsing cone: fresh water rises through the inside of the glass and drains straight into the sink.',
+          position: [0.072, 0.246, 0],
+        },
+        {
+          id: 'spray-pipe',
+          label: 'Perforated spray pipe',
+          description:
+            'Fresh water rises through the perforated pipe on the flank of the pot and sprays the outside of the glass — the tall pole opposite does the same from the other side.',
+          position: [0.031, 0.2, 0.006],
+        },
+        {
+          id: 'pole',
+          label: 'Tall spray pole',
+          description:
+            'The tall perforated pole on the far side of the rinsing cone sprays the outside of the glass from the opposite direction, so it is rinsed all round.',
+          position: [0.13, 0.2, 0.016],
+        },
+        {
+          id: 'inlet',
+          label: 'Down tube with back-flow preventer',
+          description:
+            'Fresh water enters through the hole below the rim and runs down the tube into the pot; the back-flow preventer keeps the supply line separated.',
+          position: [-0.139, 0.275, -0.069],
+        },
+        {
+          id: 'feet',
+          label: 'Suction feet with screw',
+          description: 'Three suction feet hold the Neptun firmly on the sink floor — no cut-out, no plumbing.',
+          position: [-0.122, 0.012, 0.085],
+        },
+        {
+          id: 'hose',
+          label: 'Connection hose easy clix®',
+          description:
+            'Connect the hose to the tap with the easy clix® quick coupling; the angle connection under the base takes the other end.',
+          position: [-0.26, 0.02, 0.13],
+        },
+      ],
+    },
+  },
+];
+
+/**
+ * The two consumables shown as small cards under the devices, from the
+ * catalogue's add-ons page. The pictures are the product photos in
+ * `public/addons/` with the studio background cut out, so the can sits on
+ * the card's spotlight; a replacement photo needs a transparent background.
+ */
+export const NU_ADDONS: NuAddon[] = [
+  {
+    id: 'glass-washing-tabs',
+    name: 'NU® glass washing tabs',
+    description: '500 g can (100 pieces) for 100 fillings',
+    image: '/addons/nu-glass-washing-tabs.webp',
+    alt: 'White 500 g can of NU® glass washing tabs with a green label and three tablets in front of it',
+  },
+  {
+    id: 'brush-sanitizer',
+    name: 'NU® brush sanitizer',
+    description: '750 g beer slime remover for approx. 30 applications',
+    image: '/addons/nu-brush-sanitizer.webp',
+    alt: 'White 750 g can of NU® brush sanitizer with a green label, its black cap and a heap of powder beside it',
+  },
 ];
 
 /** The four-step cleaning routine, straight from the brochure. */
@@ -286,4 +489,52 @@ export const NU_COMPANY = {
   website: 'www.spuelboy.de',
   websiteHref: 'https://www.spuelboy.de',
   claim: 'Save the Taste!',
+};
+
+/**
+ * The two addresses in the footer. The Indian office comes first and is the
+ * one shown by default; the German manufacturer is a tab away.
+ */
+export const NU_OFFICES: NuOffice[] = [
+  {
+    id: 'india',
+    tab: 'India',
+    badge: 'India office',
+    name: 'Chef Tree Enterprises P. Ltd',
+    lines: [
+      'C4 Coffee Solutions,',
+      '#7, 1st Cross, 2nd Main,',
+      'Ganga Nagar,',
+      'Bengaluru 560 032,',
+      'Karnataka, India.',
+    ],
+    // DATA TODO — phone and e-mail for the Indian office; the rows appear as
+    // soon as they are filled in.
+    website: 'www.spulboy.in',
+    websiteHref: 'https://www.spulboy.in',
+  },
+  {
+    id: 'germany',
+    tab: 'Germany',
+    badge: 'Manufacturer',
+    name: NU_COMPANY.name,
+    lines: [NU_COMPANY.street, NU_COMPANY.city],
+    phone: NU_COMPANY.phone,
+    phoneHref: NU_COMPANY.phoneHref,
+    email: NU_COMPANY.email,
+    website: NU_COMPANY.website,
+    websiteHref: NU_COMPANY.websiteHref,
+  },
+];
+
+/**
+ * The printed product catalogue, offered for download beside every price.
+ * The file lives in `public/`, so it is served from the site root.
+ */
+export const NU_CATALOGUE = {
+  label: 'Product catalogue',
+  /** On the button itself, so the three actions share one row. */
+  shortLabel: 'Catalogue',
+  href: '/spuelboy-product-catalogue.pdf',
+  fileName: 'SPUELBOY-Product-Catalogue.pdf',
 };

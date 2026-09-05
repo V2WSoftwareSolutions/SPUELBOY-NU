@@ -3,7 +3,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 import { NuViewerConfig } from '../models/product.model';
-import { createNuModel, NuModel } from './nu-model.factory';
+import { NuModel } from './nu-model.factory';
+import { createProductModel } from './product-model.factory';
 
 /**
  * Framework-agnostic 3D product stage.
@@ -216,7 +217,7 @@ export class ProductViewer {
 
   /** Loads the GLB when configured, otherwise builds the procedural device. */
   private loadModel(): void {
-    this.model = createNuModel(this.config.variant);
+    this.model = createProductModel(this.config.variant);
     this.scene.add(this.model.root);
 
     if (!this.config.modelUrl) return;

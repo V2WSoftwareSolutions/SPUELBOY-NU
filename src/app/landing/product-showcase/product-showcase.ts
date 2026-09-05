@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 
+import { NU_CATALOGUE } from '../../core/data/nu-products.data';
 import { NuProduct } from '../../core/models/product.model';
 import { ProductViewer3d } from '../product-viewer/product-viewer';
 
@@ -20,10 +21,13 @@ type PanelId = 'specs' | 'included' | null;
 })
 export class ProductShowcase {
   readonly product = input.required<NuProduct>();
-  /** Flips the stage to the other side so the two products alternate. */
+  /** Flips the stage to the other side so consecutive products alternate. */
   readonly mirrored = input(false);
 
   readonly quoteRequested = output<NuConfigurationRequest>();
+
+  /** The catalogue download offered in the price bar — the same for every product. */
+  protected readonly catalogue = NU_CATALOGUE;
 
   /** Both panels start closed; they open only when the visitor asks for them. */
   protected readonly openPanel = signal<PanelId>(null);
