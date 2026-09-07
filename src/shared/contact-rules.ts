@@ -12,14 +12,17 @@ export const NAME_PATTERN = /^\p{L}[\p{L}\p{M}' .-]*$/u;
 /** Something before the @, a domain with at least one dot, and a 2+ letter ending. */
 export const EMAIL_PATTERN = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
 
-/** Digits only, 6 to 15 of them — 15 is the E.164 maximum. */
-export const PHONE_PATTERN = /^\d{6,15}$/;
+/**
+ * An Indian mobile number as digits only: exactly ten digits, the first
+ * one 6 to 9. No country code, no leading zero.
+ */
+export const PHONE_PATTERN = /^[6-9][0-9]{9}$/;
 
 export const LIMITS = {
   name: 80,
   company: 120,
   email: 120,
-  phone: 15,
+  phone: 10,
   interest: 60,
   interestLabel: 120,
   message: 2000,
@@ -79,8 +82,8 @@ export function validateContactRequest(body: unknown): ContactValidation {
   if (!email) errors.push('E-mail is required.');
   else if (email.length > LIMITS.email || !EMAIL_PATTERN.test(email)) errors.push('E-mail is not a valid address.');
 
-  // The phone number is optional; when it is given it must be digits.
-  if (phone && !PHONE_PATTERN.test(phone)) errors.push('Phone must be 6 to 15 digits.');
+  // The phone number is optional; when it is given it must be an Indian mobile number.
+  if (phone && !PHONE_PATTERN.test(phone)) errors.push('Phone must be a 10-digit Indian mobile number.');
 
   if (!interest || interest.length > LIMITS.interest) errors.push('An interest must be chosen.');
   if (interestLabel.length > LIMITS.interestLabel) errors.push('Interest label is too long.');

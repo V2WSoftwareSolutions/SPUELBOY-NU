@@ -15,7 +15,7 @@ const REQUEST = {
   name: 'Sam Wirt',
   company: 'Zum Anker',
   email: 'sam@example.com',
-  phone: '02026953200',
+  phone: '9966879792',
   interest: 'nu-portable',
   interestLabel: 'SPÜLBOY NU® PORTABLE',
   message: 'Please send me a quote for two portable devices.',
@@ -110,7 +110,7 @@ describe('buildContactMail', () => {
   });
 
   it('carries every field the sales team needs, with a dash where nothing was given', () => {
-    for (const value of ['Sam Wirt', 'sam@example.com', '02026953200', 'SPÜLBOY NU® PORTABLE', 'SPÜLBOY NU® BUILT-IN']) {
+    for (const value of ['Sam Wirt', 'sam@example.com', '9966879792', 'SPÜLBOY NU® PORTABLE', 'SPÜLBOY NU® BUILT-IN']) {
       expect(mail.text, value).toContain(value);
     }
     expect(mail.text).toContain('Company: —');

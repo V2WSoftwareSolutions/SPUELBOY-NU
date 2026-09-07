@@ -32,10 +32,11 @@ describe('contact form validators', () => {
     }
   });
 
-  it('takes phone numbers as 6 to 15 digits and nothing else', () => {
-    expect(check(phoneValidator, '02026953200')).toBeNull();
-    expect(check(phoneValidator, '')).toBeNull();
-    for (const phone of ['+49 202 695320', '123', '0202-695320', '1234567890123456']) {
+  it('takes an Indian mobile number as exactly ten digits starting 6 to 9', () => {
+    for (const phone of ['9966879792', '6000000000', '']) {
+      expect(check(phoneValidator, phone), phone).toBeNull();
+    }
+    for (const phone of ['+91 99668 79792', '919966879792', '09966879792', '996687979', '99668797921', '5966879792', '02026953200']) {
       expect(check(phoneValidator, phone), phone).toEqual({ phone: true });
     }
   });

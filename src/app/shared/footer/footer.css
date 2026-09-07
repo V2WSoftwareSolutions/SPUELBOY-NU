@@ -302,6 +302,30 @@
   margin-top: 1rem;
 }
 
+.band__office .band__heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* A small flag beside the office badge, drawn inline so it looks the same on
+   every platform. */
+.band__flag {
+  flex: none;
+  display: block;
+  width: 1.35rem;
+  height: 0.9rem;
+  border-radius: 0.2rem;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--color-nu-hairline);
+}
+
+.band__flag svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .band__office {
   font-style: normal;
   line-height: 1.6;

@@ -101,6 +101,10 @@ export interface NuOffice {
   tab: string;
   /** Small badge beside the name, e.g. "India office" or "Manufacturer". */
   badge: string;
+  /** ISO country code, picks the flag drawn beside the badge. */
+  country: 'IN' | 'DE';
+  /** Read out for the flag. */
+  countryName: string;
   name: string;
   /** Address lines, one per line. */
   lines: string[];

@@ -37,8 +37,10 @@ export class Footer {
     { value: 'accessories', label: 'Tabs, brushes & accessories' },
   ];
 
-  /** Both offices, shown side by side in the grey band under the form. */
+  /** Both offices, shown side by side in the band under the form. */
   protected readonly offices = NU_OFFICES;
+  /** The number the form offers to call: the Indian office. */
+  protected readonly contactPhone = NU_OFFICES.find((office) => office.id === 'india') ?? NU_OFFICES[0];
 
   private readonly fb = inject(FormBuilder);
   private readonly contact = inject(ContactService);

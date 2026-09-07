@@ -76,14 +76,14 @@
                 autocomplete="tel"
                 inputmode="numeric"
                 pattern="[0-9]*"
-                maxlength="15"
+                maxlength="10"
                 formControlName="phone"
                 (input)="sanitize('phone', $event)"
                 [attr.aria-invalid]="invalid('phone')"
                 [attr.aria-describedby]="invalid('phone') ? 'contact-phone-error' : null"
               />
               @if (invalid('phone')) {
-                <p class="field__error" id="contact-phone-error">Digits only, please — 6 to 15 of them.</p>
+                <p class="field__error" id="contact-phone-error">A 10-digit Indian mobile number, please — digits only.</p>
               }
             </div>
           </div>
@@ -131,7 +131,7 @@
             <button type="submit" class="nu-btn-primary" [disabled]="state() === 'sending'">
               {{ state() === 'sending' ? 'Sending…' : 'Send request' }}
             </button>
-            <a class="nu-btn-ghost" [href]="'tel:' + company.phoneHref">Call {{ company.phone }}</a>
+            <a class="nu-btn-ghost" [href]="'tel:' + contactPhone.phoneHref">Call {{ contactPhone.phone }}</a>
           </div>
 
           <!-- Status is announced to assistive tech as soon as it changes. -->
@@ -158,7 +158,7 @@
                   <p class="notice__title">Please check the form</p>
                   <p class="notice__text">
                     Your request could not be sent. Fix the highlighted fields, or call us on
-                    {{ company.phone }}.
+                    {{ contactPhone.phone }}.
                   </p>
                 </div>
                 <button type="button" class="notice__close" aria-label="Dismiss this message" (click)="dismissStatus()">
@@ -192,7 +192,29 @@
 
         @for (office of offices; track office.id) {
           <address class="band__office">
-            <p class="band__heading">{{ office.badge }}</p>
+            <p class="band__heading">
+              <span class="band__flag" role="img" [attr.aria-label]="office.countryName">
+                @switch (office.country) {
+                  @case ('IN') {
+                    <svg viewBox="0 0 30 20" aria-hidden="true">
+                      <rect width="30" height="20" fill="#ff9933" />
+                      <rect y="6.67" width="30" height="6.67" fill="#fff" />
+                      <rect y="13.33" width="30" height="6.67" fill="#138808" />
+                      <circle cx="15" cy="10" r="2.6" fill="none" stroke="#000080" stroke-width="0.7" />
+                      <circle cx="15" cy="10" r="0.5" fill="#000080" />
+                    </svg>
+                  }
+                  @case ('DE') {
+                    <svg viewBox="0 0 30 20" aria-hidden="true">
+                      <rect width="30" height="6.67" fill="#000" />
+                      <rect y="6.67" width="30" height="6.67" fill="#dd0000" />
+                      <rect y="13.33" width="30" height="6.67" fill="#ffce00" />
+                    </svg>
+                  }
+                }
+              </span>
+              {{ office.badge }}
+            </p>
             <p class="band__office-name">{{ office.name }}</p>
             @for (line of office.lines; track line) {
               <span>{{ line }}</span>

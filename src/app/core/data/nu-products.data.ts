@@ -500,16 +500,13 @@ export const NU_OFFICES: NuOffice[] = [
     id: 'india',
     tab: 'India',
     badge: 'India office',
+    country: 'IN',
+    countryName: 'India',
     name: 'Chef Tree Enterprises P. Ltd',
-    lines: [
-      'C4 Coffee Solutions,',
-      '#7, 1st Cross, 2nd Main,',
-      'Ganga Nagar,',
-      'Bengaluru 560 032,',
-      'Karnataka, India.',
-    ],
-    // DATA TODO — phone and e-mail for the Indian office; the rows appear as
-    // soon as they are filled in.
+    lines: ['#7, 1st Cross, 2nd Main,', 'Ganga Nagar,', 'Bengaluru 560 032,', 'Karnataka, India.'],
+    phone: '+91 99668 79792',
+    phoneHref: '+919966879792',
+    // DATA TODO — e-mail for the Indian office.
     website: 'www.spulboy.in',
     websiteHref: 'https://www.spulboy.in',
   },
@@ -517,6 +514,8 @@ export const NU_OFFICES: NuOffice[] = [
     id: 'germany',
     tab: 'Germany',
     badge: 'Manufacturer',
+    country: 'DE',
+    countryName: 'Germany',
     name: NU_COMPANY.name,
     lines: [NU_COMPANY.street, NU_COMPANY.city],
     phone: NU_COMPANY.phone,
