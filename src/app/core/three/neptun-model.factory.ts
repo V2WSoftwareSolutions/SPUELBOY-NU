@@ -6,6 +6,9 @@ import {
   CleaningStations,
   collectExplodeParts,
   createDemoGlass,
+  GLASS_SOLID_OPACITY,
+  GLASS_WALL_OPACITY,
+  stainOpacity,
   createDemoMaterials,
   createSweptShell,
   createWaterBeads,
@@ -171,10 +174,13 @@ const GLASS_INNER_R = 0.031;
 const NEPTUN_WATER: WaterScene = { glassX: RINSE_X, glassZ: 0, floorY: 0 };
 
 /** The same routine as on the NU®: scrub in the pot, rinse over the head valve. */
+// Rim heights chosen so the floor of the glass (rim + GLASS_INSIDE_HEIGHT)
+// stays clear of the middle brush at the bottom of a stroke and of the valve
+// cap on the rinser at the bottom of a bob: nothing pokes through the glass.
 const NEPTUN_STATIONS: CleaningStations = {
   hoverY: 0.42,
-  scrub: { x: 0, z: 0, seatedY: 0.27, strokeY: 0.2 },
-  rinse: { x: RINSE_X, z: 0, seatedY: 0.1, bob: 0.01 },
+  scrub: { x: 0, z: 0, seatedY: 0.275, strokeY: 0.235 },
+  rinse: { x: RINSE_X, z: 0, seatedY: 0.17, bob: 0.01 },
 };
 
 // ----------------------------------------------------------------- materials
@@ -1154,9 +1160,9 @@ export function createNeptunModel(): NuModel {
       sink.position.y = -SINK_DROP * (1 - pose.fade);
 
       glass.position.set(pose.x, pose.rimY, pose.z);
-      materials.glass.opacity = 0.3 * pose.fade;
-      materials.handle.opacity = 0.62 * pose.fade;
-      materials.stain.opacity = pose.stain * pose.fade;
+      materials.glass.opacity = GLASS_WALL_OPACITY * pose.fade;
+      materials.handle.opacity = GLASS_SOLID_OPACITY * pose.fade;
+      materials.stain.opacity = stainOpacity(pose);
       materials.water.opacity = 0.92 * pose.spray * pose.fade;
 
       const rinsing = pose.spray > 0.001;

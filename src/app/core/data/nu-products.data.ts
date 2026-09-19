@@ -506,7 +506,12 @@ export const NU_OFFICES: NuOffice[] = [
     lines: ['#7, 1st Cross, 2nd Main,', 'Ganga Nagar,', 'Bengaluru 560 032,', 'Karnataka, India.'],
     phone: '+91 99668 79792',
     phoneHref: '+919966879792',
-    // DATA TODO — e-mail for the Indian office.
+    email: 'hello@manualglasswasher.in',
+    // Under the address in the footer: the same number on WhatsApp, and the e-mail.
+    links: [
+      { kind: 'whatsapp', label: '+91 99668 79792', href: 'https://wa.me/919966879792' },
+      { kind: 'email', label: 'hello@manualglasswasher.in', href: 'mailto:hello@manualglasswasher.in' },
+    ],
     website: 'www.spulboy.in',
     websiteHref: 'https://www.spulboy.in',
   },
