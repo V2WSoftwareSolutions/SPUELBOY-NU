@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 import { NuViewerVariant } from '../models/product.model';
 
@@ -13,15 +14,21 @@ export type NuDeviceVariant = Exclude<NuViewerVariant, 'neptun'>;
  * product photography and the manufacturer dimension drawing:
  *
  *   - a tapered, seamless tub (397 × 270 × 337 mm overall, 369 × 240 mm at the
- *     top of the body, 222 mm across the base) with a fully rounded bottom edge,
+ *     top of the body, 222 mm across the base) with a fully rounded bottom edge.
+ *     Seen from above the housing is a stadium — two semicircular ends joined
+ *     by straight sides — and so is the deck field cut into the lid,
+ *   - the NU® wordmark on the front of the tub and the SPÜLBOY® ORIGINAL logo
+ *     on the front of the deck field, both taken from the product photos,
  *   - the orange sealing gasket where the tub meets the lid, the grey top cover
  *     and its orange seal ring — the NU® design language is a grey shell with
  *     orange sealing details, and nothing else,
  *   - the left pre-rinse basin, deep enough to hold its whole rinser assembly:
  *     the six-lobed orange valve on the floor and the tapered pole standing on
  *     it, centred, with its knurled pin tip still clear of the deck — nothing
- *     inside the device breaks the rim line — plus the vertical water slots
- *     louvred into the front and back walls that feed the basin,
+ *     inside the device breaks the rim line — plus the two spray rails on the
+ *     front and back walls, facing each other across the rinser: raised strips
+ *     with a column of holes that spray the outside of the glass from both
+ *     sides, each between two orange guide ribs, as on the real basin,
  *   - the right Ø167 mm brush pot and the three parts that lift out of it: the
  *     finned holder, the tall centre brush and the radial brush head,
  *   - the underside: four feet, the drain boss and the fresh-water inlet with
@@ -56,7 +63,7 @@ export interface NuModel {
    */
   explode(amount: number): void;
   /**
-   * Runs the glass-cleaning demonstration: a stained beer glass is scrubbed on
+   * Runs the glass-cleaning demonstration: a dirty tea glass is scrubbed on
    * the brushes, then clear-rinsed on the rinser. `progress` runs 0 → 1 across
    * the whole show; `null` puts the props away. Timing is the caller's.
    */
@@ -70,13 +77,11 @@ export interface NuModel {
 const GREY_BODY = '#8f959c';
 const GREY_DECK = '#6f757c';
 const GREY_DARK = '#43484e';
-/** Darker than the basin wall, so a slot reads as an opening through it. */
+/** Darker than the basin wall, so a spray hole reads as an opening through it. */
 const SLOT_SHADOW = '#23272b';
 const GREY_LIGHT = '#c2c7cc';
 const ORANGE = '#e2571e';
 const BRUSH_BLACK = '#22252a';
-/** Beer residue in the demo glass — the only warm tone that is not the brand orange. */
-const BEER_STAIN = '#a8752b';
 const METAL = '#aeb3b8';
 const HOSE_GREY = '#cdd2d6';
 /** The rinse water: blue-white beads with a faint glow, so they show on white. */
@@ -90,27 +95,28 @@ const BODY_TOP_HALF_W = 0.1845; // 369 mm
 const BODY_TOP_HALF_D = 0.12; // 240 mm
 const BODY_BOTTOM_HALF_W = 0.176;
 const BODY_BOTTOM_HALF_D = 0.111; // 222 mm
-const BODY_TOP_R = 0.1;
-const BODY_BOTTOM_R = 0.09;
+// A stadium outline: the corner radius equals the half-depth, so each end is
+// one semicircle and only the long sides are straight.
+const BODY_TOP_R = BODY_TOP_HALF_D;
+const BODY_BOTTOM_R = BODY_BOTTOM_HALF_D;
 
 const DECK_HALF_W = 0.1985; // 397 mm overall width
 const DECK_HALF_D = 0.135; // 270 mm overall depth
-const DECK_R = 0.107;
+const DECK_R = DECK_HALF_D;
 const DECK_TOP = 0.337; // 337 mm overall height
 /** Top face of the recessed deck field the two openings are cut into. */
 const DECK_FIELD_Y = 0.3335;
 
-// Basins, taken from the top view: a Ø167 mm brush pot on the right, the
-// pre-rinse basin on the left. Both sit on z = 0 and are placed so that their
-// orange rings stay clear of the edge of the deck field.
+// Basins, taken from the top view: a Ø167 mm brush pot on the right and the
+// round pre-rinse basin on the left, a touch wider. Both sit on z = 0 and are
+// placed so that their orange rings stay clear of the edge of the deck field.
 const POT_X = 0.094;
 const POT_R = 0.0835;
 const POT_FLOOR_Y = 0.1995;
 
 const BASIN_X = -0.093;
-const BASIN_HALF_W = 0.082;
-const BASIN_HALF_D = 0.089;
-const BASIN_R = 0.07;
+/** The basin is a circle: a ring whose half-widths equal its corner radius. */
+const BASIN_R = 0.085;
 /** Deep enough that the whole rinser pole stands inside the basin. */
 const BASIN_FLOOR_Y = 0.205;
 
@@ -120,7 +126,7 @@ const OPENING_RING = 0.007;
 /** Outline of the recessed deck field the openings are cut into. */
 const FIELD_HALF_W = 0.1885;
 const FIELD_HALF_D = 0.125;
-const FIELD_R = 0.0995;
+const FIELD_R = FIELD_HALF_D;
 
 const FOOT_H = 0.016;
 /** Worktop height for the built-in variant; the tub hangs below it. */
@@ -168,6 +174,11 @@ function perimeter(ring: ShellRing): THREE.Vector2[] {
     }
   }
   return points;
+}
+
+/** A stadium cross-section: the ends are full semicircles of the half-depth. */
+function stadiumRing(y: number, halfW: number, halfD: number): ShellRing {
+  return { y, halfW, halfD, radius: halfD };
 }
 
 /** Lofts the rounded-rectangle cross-section through every ring, bottom up. */
@@ -253,18 +264,6 @@ function circleHole(radius: number, offsetX = 0): THREE.Path {
   return path;
 }
 
-/** A flat frame: an outer rounded rectangle with a rounded-rectangle opening. */
-function roundedRectFrame(
-  halfW: number,
-  halfD: number,
-  radius: number,
-  width: number,
-): THREE.Shape {
-  const shape = roundedRectShape(halfW + width, halfD + width, radius + width);
-  shape.holes.push(roundedRectHole(halfW, halfD, radius));
-  return shape;
-}
-
 /** Extrudes a flat outline into the XZ plane with its **top** face at y = 0. */
 export function extrudeFlat(shape: THREE.Shape, thickness: number): THREE.BufferGeometry {
   const geometry = new THREE.ExtrudeGeometry(shape, {
@@ -294,38 +293,146 @@ export interface DemoMaterials {
   water: THREE.MeshPhysicalMaterial;
 }
 
+/** How much of the wall of the demo glass shows; the fade multiplies these. */
+export const GLASS_WALL_OPACITY = 0.36;
+export const GLASS_SOLID_OPACITY = 0.6;
+
+/** `pose.stain` at its dirtiest; the residue texture is drawn for that state. */
+const STAIN_FULL = 0.7;
+
+/** Opacity of the residue film for a pose: full on the unwashed glass, gone when clean. */
+export function stainOpacity(pose: CleaningPose): number {
+  return Math.min(1, pose.stain / STAIN_FULL) * pose.fade;
+}
+
+/** A tiny seeded generator, so the dirt is the same on every visit. */
+function seededRandom(seed: number): () => number {
+  return () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * The inside of an unwashed tea glass, as a texture for the residue film:
+ * `u` runs round the glass, `v` from the floor (0) up to the rim (1). Dregs
+ * sit dense on the floor and thin out up the wall, a dark tide line marks
+ * where the tea stood, drips run down from it, and spots lie in between.
+ */
+function createTeaStainTexture(): THREE.CanvasTexture {
+  const w = 256;
+  const h = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+  const row = (v: number): number => (1 - v) * h;
+  const random = seededRandom(7);
+
+  // A faint film over everything.
+  ctx.fillStyle = 'rgba(120, 80, 36, 0.22)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Dregs: dense on the floor, fading out a third of the way up the wall.
+  const dregs = ctx.createLinearGradient(0, row(0), 0, row(0.5));
+  dregs.addColorStop(0, 'rgba(70, 38, 12, 1)');
+  dregs.addColorStop(0.5, 'rgba(90, 52, 20, 0.8)');
+  dregs.addColorStop(1, 'rgba(110, 70, 30, 0)');
+  ctx.fillStyle = dregs;
+  ctx.fillRect(0, row(0.5), w, row(0) - row(0.5));
+
+  // The tide line, slightly wavy.
+  const tide = 0.84;
+  ctx.strokeStyle = 'rgba(60, 32, 10, 0.95)';
+  ctx.lineWidth = 11;
+  ctx.beginPath();
+  for (let x = 0; x <= w; x += 4) {
+    const y = row(tide) + Math.sin(x / 17) * 2.5 + Math.sin(x / 5.3) * 1.2;
+    if (x === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Drips running down from the tide line towards the floor.
+  for (let i = 0; i < 16; i++) {
+    const x = random() * w;
+    const length = (0.12 + random() * 0.4) * (row(0.3) - row(tide));
+    const width = 3 + random() * 6;
+    const drip = ctx.createLinearGradient(0, row(tide), 0, row(tide) + length);
+    drip.addColorStop(0, 'rgba(80, 44, 16, 0.75)');
+    drip.addColorStop(1, 'rgba(88, 50, 18, 0)');
+    ctx.fillStyle = drip;
+    ctx.fillRect(x, row(tide), width, length);
+  }
+
+  // Spots and splashes in between.
+  for (let i = 0; i < 40; i++) {
+    ctx.fillStyle = `rgba(80, 46, 16, ${0.35 + random() * 0.45})`;
+    ctx.beginPath();
+    ctx.ellipse(random() * w, row(0.3 + random() * 0.55), 2 + random() * 6, 1.5 + random() * 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  return texture;
+}
+
 export function createDemoMaterials(): DemoMaterials {
   return {
+    // Clear pressed glass: a mirror-smooth clearcoat over a faint blue-white
+    // tint, the room reflected strongly in it, and a whisper of iridescence
+    // where thick glass splits the light. Alpha-blended rather than refractive,
+    // so the stain and the water inside stay visible through the wall.
     glass: new THREE.MeshPhysicalMaterial({
       name: 'NU_Glass',
-      color: new THREE.Color('#eaf1f6'),
+      color: new THREE.Color('#eef5fa'),
       metalness: 0,
-      roughness: 0.05,
+      roughness: 0.02,
       clearcoat: 1,
-      clearcoatRoughness: 0.04,
+      clearcoatRoughness: 0.02,
+      envMapIntensity: 2.2,
+      specularIntensity: 1.2,
+      iridescence: 0.2,
+      iridescenceIOR: 1.3,
+      sheen: 0.35,
+      sheenRoughness: 0.25,
+      sheenColor: new THREE.Color('#ffffff'),
       transparent: true,
-      opacity: 0.3,
+      opacity: GLASS_WALL_OPACITY,
       depthWrite: false,
       side: THREE.DoubleSide,
     }),
+    // The handle and the foot are solid glass, so they read denser than the wall.
     handle: new THREE.MeshPhysicalMaterial({
       name: 'NU_GlassHandle',
-      color: new THREE.Color('#dce8f0'),
+      color: new THREE.Color('#e3edf4'),
       metalness: 0,
-      roughness: 0.08,
+      roughness: 0.03,
       clearcoat: 1,
-      clearcoatRoughness: 0.04,
+      clearcoatRoughness: 0.02,
+      envMapIntensity: 2.2,
+      specularIntensity: 1.2,
+      iridescence: 0.12,
+      iridescenceIOR: 1.3,
       transparent: true,
-      opacity: 0.62,
+      opacity: GLASS_SOLID_OPACITY,
       depthWrite: false,
     }),
+    // The tea residue inside the glass: dregs on the floor, a tide line where
+    // the tea stood and drips between — painted once to a canvas.
     stain: new THREE.MeshStandardMaterial({
       name: 'NU_Stain',
-      color: new THREE.Color(BEER_STAIN),
+      map: createTeaStainTexture(),
+      color: new THREE.Color('#ffffff'),
       metalness: 0,
-      roughness: 0.65,
+      roughness: 0.7,
       transparent: true,
-      opacity: 0.7,
+      opacity: 1,
       depthWrite: false,
       side: THREE.DoubleSide,
     }),
@@ -334,7 +441,7 @@ export function createDemoMaterials(): DemoMaterials {
       name: 'NU_Water',
       color: new THREE.Color(WATER_BLUE),
       emissive: new THREE.Color(WATER_GLOW),
-      emissiveIntensity: 0.35,
+      emissiveIntensity: 0.5,
       metalness: 0,
       roughness: 0.15,
       clearcoat: 1,
@@ -347,6 +454,10 @@ export function createDemoMaterials(): DemoMaterials {
 }
 
 interface NuMaterials extends DemoMaterials {
+  /** The SPÜLBOY® ORIGINAL artwork, served from public/, on the deck field. */
+  logo: THREE.MeshStandardMaterial;
+  /** The NU® wordmark on the front of the tub, drawn to a canvas. */
+  wordmark: THREE.MeshStandardMaterial;
   body: THREE.MeshPhysicalMaterial;
   deck: THREE.MeshPhysicalMaterial;
   accent: THREE.MeshPhysicalMaterial;
@@ -381,6 +492,8 @@ function createMaterials(): NuMaterials {
   return {
     accent,
     button,
+    logo: createDecalMaterial('NU_Logo', loadLogoTexture()),
+    wordmark: createDecalMaterial('NU_Wordmark', createWordmarkTexture()),
     body: new THREE.MeshPhysicalMaterial({
       name: 'NU_Housing',
       color: new THREE.Color(GREY_BODY),
@@ -448,6 +561,65 @@ function createMaterials(): NuMaterials {
   };
 }
 
+// ---------------------------------------------------------------- artwork
+
+/** A flat print on the housing: the texture decides where the surface shows through. */
+function createDecalMaterial(name: string, map: THREE.Texture): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    name,
+    map,
+    transparent: true,
+    alphaTest: 0.02,
+    metalness: 0,
+    roughness: 0.55,
+    // Sits a hair above the surface it is printed on, without z-fighting it.
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+  });
+}
+
+/** The official SPÜLBOY® ORIGINAL lock-up, the same file the header shows. */
+function loadLogoTexture(): THREE.Texture {
+  const texture = new THREE.TextureLoader().load('/spulboy-logo.png');
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+
+/** Width : height of the logo file, so the print keeps its proportions. */
+const LOGO_ASPECT = 760 / 433;
+
+/**
+ * The "NU® standard" wordmark printed on the front of the tub: heavy capitals
+ * with the small "standard" spaced out beneath, in the moulding's dark grey.
+ */
+function createWordmarkTexture(): THREE.CanvasTexture {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  ctx.clearRect(0, 0, size, size);
+  ctx.fillStyle = '#2a2e33';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+
+  ctx.font = '900 300px "Inter", "Arial Black", Arial, sans-serif';
+  ctx.fillText('NU', size / 2 - 14, 330);
+  const nuWidth = ctx.measureText('NU').width;
+  ctx.font = '700 44px "Inter", Arial, sans-serif';
+  ctx.fillText('®', size / 2 - 14 + nuWidth / 2 + 26, 120);
+
+  ctx.font = '700 58px "Inter", Arial, sans-serif';
+  ctx.letterSpacing = '12px';
+  ctx.fillText('standard', size / 2 + 4, 410);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+
 // -------------------------------------------------------------------- housing
 
 /**
@@ -484,13 +656,23 @@ function buildHousing(device: THREE.Group, lid: THREE.Group, materials: NuMateri
   tub.name = 'NU_Tub';
   device.add(tub);
 
+  // The NU® wordmark, printed high on the flat middle of the front wall. The
+  // wall leans outwards as it rises, so the print leans with it.
+  const markY = 0.225;
+  const lean = Math.atan2(BODY_TOP_HALF_D - BODY_BOTTOM_HALF_D, BODY_H);
+  const wordmark = new THREE.Mesh(new THREE.PlaneGeometry(0.052, 0.052), materials.wordmark);
+  wordmark.name = 'NU_Wordmark';
+  wordmark.rotation.x = lean;
+  wordmark.position.set(0, markY, THREE.MathUtils.lerp(BODY_BOTTOM_HALF_D, BODY_TOP_HALF_D, markY / BODY_H) + 0.0004);
+  device.add(wordmark);
+
   // Orange sealing gasket, proud of both the tub and the lid above it.
   const gasket = new THREE.Mesh(
     createSweptShell([
-      { y: 0.278, halfW: 0.185, halfD: 0.1205, radius: 0.1005 },
-      { y: 0.285, halfW: 0.1915, halfD: 0.127, radius: 0.1045 },
-      { y: 0.296, halfW: 0.1915, halfD: 0.127, radius: 0.1045 },
-      { y: 0.302, halfW: 0.1875, halfD: 0.123, radius: 0.1015 },
+      stadiumRing(0.278, 0.185, 0.1205),
+      stadiumRing(0.285, 0.1915, 0.127),
+      stadiumRing(0.296, 0.1915, 0.127),
+      stadiumRing(0.302, 0.1875, 0.123),
     ]),
     materials.accent,
   );
@@ -500,12 +682,12 @@ function buildHousing(device: THREE.Group, lid: THREE.Group, materials: NuMateri
   // Grey lid band, rolling inwards at the top into the recessed deck field.
   const collar = new THREE.Mesh(
     createSweptShell([
-      { y: 0.294, halfW: 0.189, halfD: 0.1255, radius: 0.1025 },
-      { y: 0.301, halfW: DECK_HALF_W, halfD: DECK_HALF_D, radius: DECK_R },
-      { y: 0.331, halfW: DECK_HALF_W, halfD: DECK_HALF_D, radius: DECK_R },
-      { y: DECK_TOP, halfW: 0.194, halfD: 0.1305, radius: 0.1025 },
+      stadiumRing(0.294, 0.189, 0.1255),
+      stadiumRing(0.301, DECK_HALF_W, DECK_HALF_D),
+      stadiumRing(0.331, DECK_HALF_W, DECK_HALF_D),
+      stadiumRing(DECK_TOP, 0.194, 0.1305),
       // Ends *below* the deck field so the plate covers the open rim.
-      { y: 0.33, halfW: FIELD_HALF_W - 0.0005, halfD: FIELD_HALF_D - 0.0005, radius: FIELD_R },
+      stadiumRing(0.33, FIELD_HALF_W - 0.0005, FIELD_HALF_D - 0.0005),
     ]),
     materials.deck,
   );
@@ -515,10 +697,10 @@ function buildHousing(device: THREE.Group, lid: THREE.Group, materials: NuMateri
   // Orange seal bead around the rolled lip — the line you see from above.
   const sealRing = new THREE.Mesh(
     createSweptShell([
-      { y: 0.3325, halfW: 0.1928, halfD: 0.1293, radius: 0.1018 },
-      { y: 0.3368, halfW: 0.1945, halfD: 0.131, radius: 0.1035 },
-      { y: 0.3378, halfW: 0.1925, halfD: 0.129, radius: 0.1015 },
-      { y: 0.3345, halfW: 0.1895, halfD: 0.126, radius: 0.0985 },
+      stadiumRing(0.3325, 0.1928, 0.1293),
+      stadiumRing(0.3368, 0.1945, 0.131),
+      stadiumRing(0.3378, 0.1925, 0.129),
+      stadiumRing(0.3345, 0.1895, 0.126),
     ]),
     materials.accent,
   );
@@ -530,7 +712,7 @@ function buildHousing(device: THREE.Group, lid: THREE.Group, materials: NuMateri
 function buildDeck(lid: THREE.Group, materials: NuMaterials): void {
   const field = roundedRectShape(FIELD_HALF_W, FIELD_HALF_D, FIELD_R);
   field.holes.push(
-    roundedRectHole(BASIN_HALF_W, BASIN_HALF_D, BASIN_R, BASIN_X),
+    circleHole(BASIN_R, BASIN_X),
     circleHole(POT_R, POT_X),
   );
 
@@ -540,10 +722,10 @@ function buildDeck(lid: THREE.Group, materials: NuMaterials): void {
   lid.add(plate);
 
   // Orange ring around each opening, flush on the deck field.
-  const basinRing = new THREE.Mesh(
-    extrudeFlat(roundedRectFrame(BASIN_HALF_W, BASIN_HALF_D, BASIN_R, OPENING_RING), 0.005),
-    materials.accent,
-  );
+  const basinFrame = new THREE.Shape();
+  basinFrame.absarc(0, 0, BASIN_R + OPENING_RING, 0, Math.PI * 2, false);
+  basinFrame.holes.push(circleHole(BASIN_R));
+  const basinRing = new THREE.Mesh(extrudeFlat(basinFrame, 0.005), materials.accent);
   basinRing.name = 'NU_BasinRing';
   basinRing.position.set(BASIN_X, DECK_FIELD_Y + 0.0022, 0);
   lid.add(basinRing);
@@ -556,33 +738,54 @@ function buildDeck(lid: THREE.Group, materials: NuMaterials): void {
   potRing.position.set(POT_X, DECK_FIELD_Y + 0.0022, 0);
   lid.add(potRing);
 
-  // Brand badge on the front of the deck field.
-  const badge = new THREE.Mesh(extrudeFlat(roundedRectShape(0.026, 0.0065, 0.0055), 0.0018), materials.accent);
-  badge.name = 'NU_Badge';
-  badge.position.set(0, DECK_FIELD_Y + 0.0018, 0.109);
-  lid.add(badge);
+  // SPÜLBOY® ORIGINAL logo printed on the front of the deck field, between
+  // the two openings and the rim, as on the real lid.
+  const logoWidth = 0.04;
+  const logo = new THREE.Mesh(new THREE.PlaneGeometry(logoWidth, logoWidth / LOGO_ASPECT), materials.logo);
+  logo.name = 'NU_Logo';
+  logo.rotation.x = -Math.PI / 2;
+  logo.position.set(0, DECK_FIELD_Y + 0.0006, 0.107);
+  lid.add(logo);
 }
 
 // -------------------------------------------------------------------- basins
 
-/** Funnel profile of the pre-rinse basin, floor first. */
+/** A circular cross-section: `perimeter` draws a ring whose half-widths equal its radius as a full circle. */
+const circleRing = (y: number, radius: number): ShellRing => ({ y, halfW: radius, halfD: radius, radius });
+
+/** Funnel profile of the round pre-rinse basin, floor first. */
 const BASIN_RINGS: ShellRing[] = [
-  { y: BASIN_FLOOR_Y, halfW: 0.052, halfD: 0.059, radius: 0.044 },
-  { y: 0.22, halfW: 0.055, halfD: 0.062, radius: 0.046 },
-  { y: 0.25, halfW: 0.06, halfD: 0.067, radius: 0.051 },
-  { y: 0.285, halfW: 0.068, halfD: 0.075, radius: 0.057 },
-  { y: 0.312, halfW: 0.077, halfD: 0.084, radius: 0.065 },
-  { y: 0.3345, halfW: BASIN_HALF_W, halfD: BASIN_HALF_D, radius: BASIN_R },
+  circleRing(BASIN_FLOOR_Y, 0.056),
+  circleRing(0.22, 0.059),
+  circleRing(0.25, 0.064),
+  circleRing(0.285, 0.072),
+  circleRing(0.312, 0.08),
+  circleRing(0.3345, BASIN_R),
 ];
 
-// The louvred water slots on the basin wall — the fresh water passes through
-// these into the basin. They sit on the front and back walls, as in the photo.
-const SLOT_BOTTOM_Y = 0.294;
-const SLOT_TOP_Y = 0.326;
-const SLOT_WIDTH = 0.0032;
-const SLOT_DEPTH = 0.004;
-const SLOTS_PER_GROUP = 5;
-const SLOT_PITCH = 0.26; // radians between neighbouring slots
+// The spray rails on the front and back walls of the basin — the fresh water
+// rises inside them and their columns of holes spray the outside of the glass
+// standing over the rinser from both sides, as on the real basin. Two orange
+// ribs flank each rail as guides.
+const RAIL_PHIS = [Math.PI / 2, (Math.PI * 3) / 2]; // the front wall, the back wall
+/** The rail runs from just above the floor to just under the rim. */
+const RAIL_BOTTOM_Y = 0.216;
+const RAIL_TOP_Y = 0.331;
+const RAIL_WIDTH = 0.013;
+const RAIL_DEPTH = 0.0035;
+/** How far the rail stands proud of the wall, into the basin. */
+const RAIL_PROUD = 0.0015;
+/** The wider, rounded head at the top of the rail. */
+const RAIL_HEAD_WIDTH = 0.023;
+const RAIL_HEAD_HEIGHT = 0.02;
+const RAIL_HOLES = 10;
+const RAIL_HOLE_BOTTOM_Y = 0.226;
+const RAIL_HOLE_TOP_Y = 0.302;
+const RAIL_HOLE_R = 0.0011;
+/** The guide ribs either side of the rail, in radians round the basin. */
+const RIB_OFFSET = 0.2;
+const RIB_WIDTH = 0.0028;
+const RIB_DEPTH = 0.003;
 
 /** Cross-section of the funnel at an arbitrary height, for placing fittings. */
 function interpolateRing(rings: ShellRing[], y: number): ShellRing {
@@ -624,64 +827,153 @@ function ringPointAt(ring: ShellRing, phi: number): { x: number; z: number; nx: 
 }
 
 /**
- * The vertical water slots louvred into the basin wall. Each one follows the
- * slope of the funnel and stands a fraction of a millimetre proud of it on the
- * inside, so it reads as a cut rather than as a rib.
+ * A frame lying on the basin wall between two heights at angle `phi`: its
+ * origin is midway up, +y runs up the wall (following the slope of the
+ * funnel), +z points out through the wall and -z into the basin. Fittings are
+ * built in that frame, so they hug the wall wherever it is.
  */
-function createWallSlots(materials: NuMaterials): THREE.InstancedMesh {
-  const lower = interpolateRing(BASIN_RINGS, SLOT_BOTTOM_Y);
-  const upper = interpolateRing(BASIN_RINGS, SLOT_TOP_Y);
-  const groups = [Math.PI / 2, (Math.PI * 3) / 2]; // front wall and back wall
+function wallFrame(phi: number, bottomY: number, topY: number): { group: THREE.Group; length: number } {
+  const lower = interpolateRing(BASIN_RINGS, bottomY);
+  const upper = interpolateRing(BASIN_RINGS, topY);
+  const a = ringPointAt(lower, phi);
+  const b = ringPointAt(upper, phi);
+  const bottom = new THREE.Vector3(a.x, lower.y, a.z);
+  const top = new THREE.Vector3(b.x, upper.y, b.z);
 
-  const mesh = new THREE.InstancedMesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    materials.slot,
-    groups.length * SLOTS_PER_GROUP,
-  );
-  mesh.name = 'NU_BasinSlots';
+  const axis = top.clone().sub(bottom);
+  const length = axis.length();
+  axis.divideScalar(length);
+  // Square the wall normal against the axis, then build the frame from both.
+  const outward = new THREE.Vector3(b.nx, 0, b.nz).normalize();
+  outward.addScaledVector(axis, -outward.dot(axis)).normalize();
+  const across = new THREE.Vector3().crossVectors(axis, outward);
 
-  const dummy = new THREE.Object3D();
-  const bottom = new THREE.Vector3();
-  const top = new THREE.Vector3();
-  const axis = new THREE.Vector3();
-  const outward = new THREE.Vector3();
-  const across = new THREE.Vector3();
-  const basis = new THREE.Matrix4();
-  let index = 0;
+  const group = new THREE.Group();
+  group.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(across, axis, outward));
+  group.position.lerpVectors(bottom, top, 0.5);
+  group.updateMatrixWorld(true);
+  return { group, length };
+}
 
-  for (const centre of groups) {
-    for (let i = 0; i < SLOTS_PER_GROUP; i++) {
-      const phi = centre + (i - (SLOTS_PER_GROUP - 1) / 2) * SLOT_PITCH;
-      const a = ringPointAt(lower, phi);
-      const b = ringPointAt(upper, phi);
-
-      bottom.set(a.x, lower.y, a.z);
-      top.set(b.x, upper.y, b.z);
-      axis.subVectors(top, bottom);
-      const length = axis.length();
-      axis.divideScalar(length);
-
-      // Square the wall normal against the slot axis, then build the frame.
-      outward.set(b.nx, 0, b.nz).normalize();
-      outward.addScaledVector(axis, -outward.dot(axis)).normalize();
-      across.crossVectors(axis, outward);
-      basis.makeBasis(across, axis, outward);
-
-      dummy.quaternion.setFromRotationMatrix(basis);
-      dummy.position.lerpVectors(bottom, top, 0.5).addScaledVector(outward, SLOT_DEPTH / 2 - 0.0003);
-      dummy.scale.set(SLOT_WIDTH, length, SLOT_DEPTH);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(index++, dummy.matrix);
-    }
-  }
-
-  mesh.instanceMatrix.needsUpdate = true;
-  return mesh;
+/** Height of the i-th spray hole, bottom up. */
+function railHoleY(i: number): number {
+  return RAIL_HOLE_BOTTOM_Y + (i / (RAIL_HOLES - 1)) * (RAIL_HOLE_TOP_Y - RAIL_HOLE_BOTTOM_Y);
 }
 
 /**
- * Left pre-rinse basin: funnel walls with their water slots, the orange rinser
- * valve on the floor and the pole standing on it.
+ * The funnel wall curves outwards as it rises, so one straight strip between
+ * two heights would sink into it halfway up. Anything tall is built in
+ * segments split at the basin's profile rings, each in its own wall frame.
+ */
+function wallSegments(phi: number, bottomY: number, topY: number): Array<{ group: THREE.Group; length: number; bottomY: number; topY: number }> {
+  const bounds = [bottomY, ...BASIN_RINGS.map((ring) => ring.y).filter((y) => y > bottomY && y < topY), topY];
+  const segments = [];
+  for (let i = 0; i < bounds.length - 1; i++) {
+    segments.push({ ...wallFrame(phi, bounds[i], bounds[i + 1]), bottomY: bounds[i], topY: bounds[i + 1] });
+  }
+  return segments;
+}
+
+/** A point at height `y` on the wall at angle `phi`, offset into the basin by `proud`, and the frame it sits in. */
+function wallPointAt(phi: number, y: number, proud: number): { point: THREE.Vector3; quaternion: THREE.Quaternion } {
+  const below = BASIN_RINGS.filter((ring) => ring.y < y).pop() ?? BASIN_RINGS[0];
+  const above = BASIN_RINGS.find((ring) => ring.y > y) ?? BASIN_RINGS[BASIN_RINGS.length - 1];
+  const { group, length } = wallFrame(phi, below.y, above.y);
+  const along = ((y - (below.y + above.y) / 2) * length) / (above.y - below.y);
+  return { point: group.localToWorld(new THREE.Vector3(0, along, -proud)), quaternion: group.quaternion.clone() };
+}
+
+/** The spray holes of both rails, in basin-local space — where the rinse water leaves. */
+function railHolePoints(): THREE.Vector3[] {
+  const points: THREE.Vector3[] = [];
+  for (const phi of RAIL_PHIS) {
+    for (let i = 0; i < RAIL_HOLES; i++) points.push(wallPointAt(phi, railHoleY(i), RAIL_PROUD + 0.0002).point);
+  }
+  return points;
+}
+
+/** A strip hugging the wall between two heights, in segments that follow its curve. */
+function addWallStrip(
+  into: THREE.Group,
+  phi: number,
+  bottomY: number,
+  topY: number,
+  width: number,
+  depth: number,
+  proud: number,
+  material: THREE.Material,
+): { group: THREE.Group; length: number } {
+  const segments = wallSegments(phi, bottomY, topY);
+  for (const segment of segments) {
+    // A hair longer than its span, so neighbouring segments overlap at the joints.
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(width, segment.length + 0.0012, depth), material);
+    bar.position.z = depth / 2 - proud;
+    segment.group.add(bar);
+    into.add(segment.group);
+  }
+  return segments[segments.length - 1];
+}
+
+/**
+ * The spray rails: on the front and the back wall, a grey strip standing a
+ * little proud of the wall from the floor to just under the rim, widening into
+ * a rounded head at the top, with its column of dark holes facing the rinser
+ * and an orange guide rib either side. Fixed to the basin — nothing here comes
+ * off.
+ */
+function createSprayRails(materials: NuMaterials): THREE.Group {
+  const rails = new THREE.Group();
+  rails.name = 'NU_SprayRails';
+  for (const phi of RAIL_PHIS) rails.add(createSprayRail(phi, materials));
+  return rails;
+}
+
+/** One spray rail on the wall at angle `phi`. */
+function createSprayRail(phi: number, materials: NuMaterials): THREE.Group {
+  const rail = new THREE.Group();
+  rail.name = 'NU_SprayRail';
+
+  const top = addWallStrip(rail, phi, RAIL_BOTTOM_Y, RAIL_TOP_Y, RAIL_WIDTH, RAIL_DEPTH, RAIL_PROUD, materials.deck);
+  const inset = RAIL_DEPTH / 2 - RAIL_PROUD;
+
+  // The head: a wider plate at the top of the strip with a half-round crown.
+  const headR = RAIL_HEAD_WIDTH / 2;
+  const headBody = RAIL_HEAD_HEIGHT - headR;
+  const head = new THREE.Mesh(new THREE.BoxGeometry(RAIL_HEAD_WIDTH, headBody, RAIL_DEPTH), materials.deck);
+  head.position.set(0, top.length / 2 - headR - headBody / 2, inset);
+  top.group.add(head);
+
+  const crown = new THREE.Mesh(new THREE.CylinderGeometry(headR, headR, RAIL_DEPTH, 24), materials.deck);
+  crown.rotation.x = Math.PI / 2;
+  crown.position.set(0, top.length / 2 - headR, inset);
+  top.group.add(crown);
+
+  // The column of holes, on the face that looks at the rinser.
+  const holes = new THREE.InstancedMesh(new THREE.CircleGeometry(RAIL_HOLE_R, 12), materials.slot, RAIL_HOLES);
+  holes.name = 'NU_RailHoles';
+  const dummy = new THREE.Object3D();
+  const facing = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+  for (let i = 0; i < RAIL_HOLES; i++) {
+    const { point, quaternion } = wallPointAt(phi, railHoleY(i), RAIL_PROUD + 0.0002);
+    dummy.position.copy(point);
+    dummy.quaternion.copy(quaternion).multiply(facing);
+    dummy.updateMatrix();
+    holes.setMatrixAt(i, dummy.matrix);
+  }
+  holes.instanceMatrix.needsUpdate = true;
+  rail.add(holes);
+
+  // The orange guide ribs either side of the rail.
+  for (const side of [-1, 1]) {
+    addWallStrip(rail, phi + side * RIB_OFFSET, RAIL_BOTTOM_Y + 0.004, RAIL_TOP_Y, RIB_WIDTH, RIB_DEPTH, 0.0012, materials.accent);
+  }
+
+  return rail;
+}
+
+/**
+ * Left pre-rinse basin: funnel walls with a spray rail on the front and the
+ * back wall, the orange rinser valve on the floor and the pole standing on it.
  */
 function buildRinseBasin(lid: THREE.Group, materials: NuMaterials): void {
   const basin = new THREE.Group();
@@ -690,7 +982,7 @@ function buildRinseBasin(lid: THREE.Group, materials: NuMaterials): void {
 
   const walls = new THREE.Mesh(createSweptShell(BASIN_RINGS, { bottom: true }), materials.interior);
   basin.add(walls);
-  basin.add(createWallSlots(materials));
+  basin.add(createSprayRails(materials));
 
   // Six-lobed orange rinser valve: press the glass down and the water rises.
   const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.043, 0.045, 0.007, 40), materials.interior);
@@ -1064,75 +1356,93 @@ const GLASS_SEATED_Y = 0.3;
 /** Deepest point of a scrubbing stroke. */
 const GLASS_SCRUB_Y = 0.255;
 
+// The demo glass is the faceted tea mug supplied as `faceted-glass-mug.glb`
+// (served from public/models). The file is drawn upright in metres, base on
+// y = 0 and 112 mm tall, with its handle along +x; it is scaled so its
+// inside is GLASS_DEPTH deep, which keeps every station height below valid.
+const GLASS_MODEL_URL = '/models/faceted-glass-mug.glb';
+/** Height of the file's rim above its base. */
+const GLASS_MODEL_HEIGHT = 0.112;
+/** Depth of the file's inside, rim to floor. */
+const GLASS_MODEL_DEPTH = 0.1004;
+/** Depth of the inside of the demo glass, rim to floor. */
+const GLASS_DEPTH = 0.085;
+const GLASS_SCALE = GLASS_DEPTH / GLASS_MODEL_DEPTH;
+/** Outer radius at the rim. */
+const GLASS_RIM_R = 0.0425 * GLASS_SCALE;
+/** Radius of the inside of the glass at mid-height. */
+const GLASS_INNER_R = 0.03 * GLASS_SCALE;
+
 /**
- * A half-litre beer glass, built **rim down** — the group origin is the rim and
- * the base rises to +y — because that is how a glass is held over the brushes,
+ * The demo glass, built **rim down** — the group origin is the rim and the
+ * base rises to +y — because that is how a glass is held over the brushes,
  * and it makes the choreography below a matter of moving one rim height.
+ *
+ * The glass itself is the supplied GLB, loaded into the group as soon as it
+ * arrives, re-dressed in the demo's glass materials (so it fades with the
+ * rest of the prop) and turned rim down with its handle to +z, towards the
+ * camera and clear of every rinser. Only the residue film is still drawn
+ * here, fitted to the inside of that model.
  */
 export function createDemoGlass(materials: DemoMaterials): THREE.Group {
   const glass = new THREE.Group();
   glass.name = 'NU_DemoGlass';
 
-  const wall = [
-    [0.0, 0.155],
-    [0.024, 0.155],
-    [0.029, 0.1525],
-    [0.0305, 0.148],
-    [0.0325, 0.115],
-    [0.0345, 0.075],
-    [0.036, 0.035],
-    [0.0372, 0.004],
-    [0.0368, 0.0],
-    [0.0338, 0.004],
-    [0.0326, 0.035],
-    [0.0311, 0.075],
-    [0.0291, 0.115],
-    [0.0268, 0.14],
-    [0.0235, 0.1465],
-    [0.0, 0.1485],
-  ].map(([r, y]) => new THREE.Vector2(r, y));
+  // Rim down, handle to +z: the file is flipped about z, lifted so its rim
+  // sits on the origin, then the whole thing is turned a quarter round y.
+  const pivot = new THREE.Group();
+  pivot.rotation.y = Math.PI / 2;
+  glass.add(pivot);
 
-  const body = new THREE.Mesh(new THREE.LatheGeometry(wall, 48), materials.glass);
-  body.name = 'NU_DemoGlassBody';
-  glass.add(body);
+  new GLTFLoader().load(GLASS_MODEL_URL, (gltf) => {
+    const model = gltf.scene;
+    model.name = 'NU_DemoGlassModel';
+    model.scale.setScalar(GLASS_SCALE);
+    model.rotation.z = Math.PI;
+    model.position.y = GLASS_MODEL_HEIGHT * GLASS_SCALE;
 
-  // The residue film: the inner surface only, sitting just inside the wall.
+    const drop: THREE.Object3D[] = [];
+    model.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const name = mesh.name.toLowerCase();
+      if (name.includes('tea')) {
+        // The file comes filled; the demo brings its own dirt instead.
+        drop.push(mesh);
+        return;
+      }
+      // The thin wall shows through; the rim band and handle are solid glass.
+      mesh.material = name.includes('rim') || name.includes('handle') ? materials.handle : materials.glass;
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      mesh.raycast = () => undefined;
+    });
+    for (const mesh of drop) {
+      mesh.removeFromParent();
+      (mesh as THREE.Mesh).geometry.dispose();
+    }
+    pivot.add(model);
+  });
+
+  // The residue film: the inside of the mug, a hair inside its wall, rim
+  // down. Its points are spaced evenly up the wall so the texture's v runs
+  // straight from the floor to the rim.
   const film = [
-    [0.0, 0.148],
-    [0.023, 0.146],
-    [0.0263, 0.1395],
-    [0.0286, 0.115],
-    [0.0306, 0.075],
-    [0.0321, 0.035],
-    [0.0333, 0.006],
+    [0.0, 0.0843],
+    [0.0221, 0.0826],
+    [0.024, 0.0695],
+    [0.0253, 0.0568],
+    [0.0265, 0.044],
+    [0.0278, 0.0313],
+    [0.029, 0.0186],
+    [0.031, 0.0059],
   ].map(([r, y]) => new THREE.Vector2(r, y));
 
-  const stain = new THREE.Mesh(new THREE.LatheGeometry(film, 48), materials.stain);
+  const stain = new THREE.Mesh(new THREE.LatheGeometry(film, 64), materials.stain);
   stain.name = 'NU_DemoGlassStain';
+  // Drawn after the wall, so the dirt is not washed out by the glass over it.
+  stain.renderOrder = 1;
   glass.add(stain);
-
-  // The handle: a C on the side, like a tea glass — out from just below the
-  // rim, round, and back in at mid-body. It points to +z, towards the camera
-  // and clear of every rinser, and starts and ends inside the wall so it
-  // reads as one piece with the glass.
-  const handle = new THREE.Mesh(
-    new THREE.TubeGeometry(
-      new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0, 0.016, 0.034),
-        new THREE.Vector3(0, 0.026, 0.058),
-        new THREE.Vector3(0, 0.055, 0.067),
-        new THREE.Vector3(0, 0.084, 0.055),
-        new THREE.Vector3(0, 0.096, 0.031),
-      ]),
-      32,
-      0.0045,
-      10,
-      false,
-    ),
-    materials.handle,
-  );
-  handle.name = 'NU_DemoGlassHandle';
-  glass.add(handle);
 
   return glass;
 }
@@ -1164,10 +1474,12 @@ export interface CleaningPose {
   z: number;
   /** Height of the glass rim. */
   rimY: number;
-  /** Opacity of the beer residue, 0.7 filthy down to 0 clean. */
+  /** Opacity of the tea residue, 0.7 filthy down to 0 clean. */
   stain: number;
   /** Strength of the rinse jet. */
   spray: number;
+  /** Strength of the wash water thrown up the glass on the brushes. */
+  splash: number;
   /** How hard the glass is bearing down on the brush head. */
   press: number;
   /** Fades the whole prop in at the start and out at the end. */
@@ -1193,60 +1505,74 @@ export function cleaningPose(progress: number, stations: CleaningStations): Clea
     x: scrub.x,
     z: scrub.z,
     rimY: hoverY,
-    stain: 0.7,
+    stain: STAIN_FULL,
     spray: 0,
+    splash: 0,
     press: 0,
     fade: 1,
   };
+  /** The brushes take 98.5 % of the residue; the rinse takes the last 1.5 %. */
+  const scrubbed = STAIN_FULL * 0.015;
 
-  if (progress < 0.14) {
+  if (progress < 0.06) {
     // A dirty glass appears over the brush pot.
-    pose.fade = smoothstep(progress / 0.14, 0, 1);
-  } else if (progress < 0.22) {
+    pose.fade = smoothstep(progress / 0.06, 0, 1);
+  } else if (progress < 0.11) {
     // Lower it onto the brushes.
-    pose.rimY = lerp(hoverY, scrub.seatedY, smoothstep((progress - 0.14) / 0.08, 0, 1));
-    pose.press = smoothstep((progress - 0.14) / 0.08, 0, 1);
-  } else if (progress < 0.5) {
-    // Pre-wash: rapid up-and-down strokes over the brush, never turning.
-    const k = (progress - 0.22) / 0.28;
-    const stroke = 0.5 - 0.5 * Math.cos(k * Math.PI * 8);
+    const k = smoothstep((progress - 0.06) / 0.05, 0, 1);
+    pose.rimY = lerp(hoverY, scrub.seatedY, k);
+    pose.press = k;
+  } else if (progress < 0.42) {
+    // Pre-wash: six slow up-and-down strokes over the brush, never turning,
+    // with the wash water thrown up the outside of the glass on every stroke.
+    const k = (progress - 0.11) / 0.31;
+    const stroke = 0.5 - 0.5 * Math.cos(k * Math.PI * 12);
     pose.rimY = lerp(scrub.seatedY, scrub.strokeY, stroke);
-    pose.stain = lerp(0.7, 0.25, k);
+    pose.stain = lerp(STAIN_FULL, scrubbed, k);
     pose.press = 1;
-  } else if (progress < 0.6) {
+    pose.splash = 0.55 + 0.45 * stroke;
+  } else if (progress < 0.47) {
+    // A moment's rest on the brushes, so the scrubbed glass can be seen.
+    const k = (progress - 0.42) / 0.05;
+    pose.rimY = scrub.seatedY;
+    pose.stain = scrubbed;
+    pose.press = 1;
+    pose.splash = 0.35 * (1 - k);
+  } else if (progress < 0.55) {
     // Lift out and carry across to the rinser.
-    const k = smoothstep((progress - 0.5) / 0.1, 0, 1);
+    const k = smoothstep((progress - 0.47) / 0.08, 0, 1);
     pose.rimY = lerp(scrub.seatedY, hoverY, Math.min(1, k * 2));
     pose.x = lerp(scrub.x, rinse.x, k);
     pose.z = lerp(scrub.z, rinse.z, k);
-    pose.stain = 0.25;
+    pose.stain = scrubbed;
     pose.press = Math.max(0, 1 - k * 3);
-  } else if (progress < 0.68) {
+  } else if (progress < 0.6) {
     // Lower it onto the rinser.
     pose.x = rinse.x;
     pose.z = rinse.z;
-    pose.rimY = lerp(hoverY, rinse.seatedY, smoothstep((progress - 0.6) / 0.08, 0, 1));
-    pose.stain = 0.25;
+    pose.rimY = lerp(hoverY, rinse.seatedY, smoothstep((progress - 0.55) / 0.05, 0, 1));
+    pose.stain = scrubbed;
   } else if (progress < 0.86) {
-    // Clear-rinsing: fresh water through the inside of the glass.
-    const k = (progress - 0.68) / 0.18;
+    // Clear-rinsing: fresh water over and through the glass while it bobs on
+    // the rinser, until the last of the residue is gone.
+    const k = (progress - 0.6) / 0.26;
     pose.x = rinse.x;
     pose.z = rinse.z;
-    pose.rimY = rinse.seatedY - rinse.bob * (0.5 - 0.5 * Math.cos(k * Math.PI * 4));
-    pose.stain = lerp(0.25, 0, Math.min(1, k * 1.4));
-    pose.spray = Math.min(1, k * 5) * Math.min(1, (1 - k) * 5);
-  } else if (progress < 0.94) {
+    pose.rimY = rinse.seatedY - rinse.bob * (0.5 - 0.5 * Math.cos(k * Math.PI * 6));
+    pose.stain = lerp(scrubbed, 0, Math.min(1, k * 1.3));
+    pose.spray = Math.min(1, k * 4) * Math.min(1, (1 - k) * 4);
+  } else if (progress < 0.93) {
     // Lift the clean glass clear.
     pose.x = rinse.x;
     pose.z = rinse.z;
-    pose.rimY = lerp(rinse.seatedY, hoverY, smoothstep((progress - 0.86) / 0.08, 0, 1));
+    pose.rimY = lerp(rinse.seatedY, hoverY, smoothstep((progress - 0.86) / 0.07, 0, 1));
     pose.stain = 0;
   } else {
     // Hold it up clean, then let it go.
     pose.x = rinse.x;
     pose.z = rinse.z;
     pose.stain = 0;
-    pose.fade = 1 - smoothstep((progress - 0.94) / 0.06, 0, 1);
+    pose.fade = 1 - smoothstep((progress - 0.93) / 0.07, 0, 1);
   }
 
   return pose;
@@ -1255,7 +1581,7 @@ export function cleaningPose(progress: number, stations: CleaningStations): Clea
 // ---------------------------------------------------------------- rinse water
 
 /** Interior height of the demo glass, rim to base. */
-export const GLASS_INSIDE_HEIGHT = 0.148;
+export const GLASS_INSIDE_HEIGHT = GLASS_DEPTH;
 
 /**
  * One stream of water beads: a flight from `from` to where it lands on the
@@ -1395,14 +1721,32 @@ export function placeWaterBeads(
  */
 function createNuWaterStreams(): WaterStream[] {
   const streams: WaterStream[] = [];
+
+  // Every hole of both spray rails plays towards the glass over the rinser:
+  // the ones above its rim wet the outside of the glass and run down it, the
+  // lower ones spray in under the rim and fall away.
+  const glassWall = GLASS_RIM_R + 0.0005;
+  for (const hole of railHolePoints()) {
+    const theta = Math.atan2(hole.z, hole.x);
+    streams.push({
+      from: new THREE.Vector3(BASIN_X + hole.x, hole.y, hole.z),
+      to: new THREE.Vector3(BASIN_X + glassWall * Math.cos(theta), hole.y, glassWall * Math.sin(theta)),
+      wallRadius: glassWall,
+      drift: -0.2,
+      beads: 6,
+      landsOnBase: false,
+    });
+  }
+
   for (let i = 0; i < 10; i++) {
     const theta = i * 2.399963;
-    const to = new THREE.Vector3(BASIN_X + 0.031 * Math.cos(theta), 0, 0.031 * Math.sin(theta));
+    const inner = GLASS_INNER_R;
+    const to = new THREE.Vector3(BASIN_X + inner * Math.cos(theta), 0, inner * Math.sin(theta));
     streams.push({
       // Six streams rise off the pin; four more simply run down the wall.
       from: i < 6 ? new THREE.Vector3(BASIN_X, PIN_TOP, 0) : to.clone(),
       to,
-      wallRadius: 0.031,
+      wallRadius: inner,
       drift: -0.2,
       beads: 12,
       landsOnBase: true,
@@ -1413,6 +1757,30 @@ function createNuWaterStreams(): WaterStream[] {
 
 /** The NU® rinses over the basin: the water vanishes on its floor. */
 const NU_WATER: WaterScene = { glassX: BASIN_X, glassZ: 0, floorY: BASIN_FLOOR_Y };
+
+/**
+ * The wash water on the brushes: thrown up the outside of the glass from the
+ * bristles all round it, it runs back down the wall and drops off the rim
+ * into the pot — the splash of every scrubbing stroke.
+ */
+function createNuSplashStreams(): WaterStream[] {
+  const streams: WaterStream[] = [];
+  const outer = GLASS_RIM_R + 0.0008;
+  for (let i = 0; i < 14; i++) {
+    const theta = (i / 14) * Math.PI * 2 + 0.3;
+    streams.push({
+      from: new THREE.Vector3(POT_X + (outer - 0.004) * Math.cos(theta), 0.29, (outer - 0.004) * Math.sin(theta)),
+      to: new THREE.Vector3(POT_X + outer * Math.cos(theta), 0.335, outer * Math.sin(theta)),
+      wallRadius: outer,
+      drift: 0.35,
+      beads: 7,
+      landsOnBase: false,
+    });
+  }
+  return streams;
+}
+
+const NU_SPLASH: WaterScene = { glassX: POT_X, glassZ: 0, floorY: POT_FLOOR_Y };
 
 // ------------------------------------------------------------------- exploded
 
@@ -1516,7 +1884,9 @@ export function createNuModel(variant: NuDeviceVariant): NuModel {
   const glass = createDemoGlass(materials);
   const streams = createNuWaterStreams();
   const water = createWaterBeads(materials.water, streams, 'NU_WaterBeads');
-  demo.add(glass, water);
+  const splashStreams = createNuSplashStreams();
+  const splash = createWaterBeads(materials.water, splashStreams, 'NU_SplashBeads');
+  demo.add(glass, water, splash);
   demo.traverse((object) => {
     object.castShadow = false;
     object.receiveShadow = false;
@@ -1559,14 +1929,18 @@ export function createNuModel(variant: NuDeviceVariant): NuModel {
       const pose = cleaningPose(THREE.MathUtils.clamp(progress, 0, 1), NU_STATIONS);
 
       glass.position.set(pose.x, pose.rimY, pose.z);
-      materials.glass.opacity = 0.3 * pose.fade;
-      materials.handle.opacity = 0.62 * pose.fade;
-      materials.stain.opacity = pose.stain * pose.fade;
-      materials.water.opacity = 0.92 * pose.spray * pose.fade;
+      materials.glass.opacity = GLASS_WALL_OPACITY * pose.fade;
+      materials.handle.opacity = GLASS_SOLID_OPACITY * pose.fade;
+      materials.stain.opacity = stainOpacity(pose);
+      materials.water.opacity = 0.92 * Math.max(pose.spray, pose.splash) * pose.fade;
 
       const rinsing = pose.spray > 0.001;
       water.visible = rinsing;
       if (rinsing) placeWaterBeads(water, streams, NU_WATER, pose.rimY, time, pose.spray, scratch);
+
+      const splashing = pose.splash > 0.001;
+      splash.visible = splashing;
+      if (splashing) placeWaterBeads(splash, splashStreams, NU_SPLASH, pose.rimY, time, pose.splash, scratch);
 
       // The bristles give way under the glass instead of spearing through it.
       const splay = 1 - 0.55 * pose.press;
@@ -1578,6 +1952,9 @@ export function createNuModel(variant: NuDeviceVariant): NuModel {
         const mesh = object as THREE.Mesh;
         mesh.geometry?.dispose();
       });
+      materials.logo.map?.dispose();
+      materials.wordmark.map?.dispose();
+      materials.stain.map?.dispose();
       Object.values(materials).forEach((material) => material.dispose());
     },
   };

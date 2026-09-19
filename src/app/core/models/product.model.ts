@@ -94,6 +94,13 @@ export interface NuAddon {
   alt: string;
 }
 
+/** A way to reach an office from the footer: WhatsApp or e-mail, with its icon. */
+export interface NuOfficeLink {
+  kind: 'whatsapp' | 'email';
+  label: string;
+  href: string;
+}
+
 /** One of the addresses in the footer; a contact row renders only when its field is set. */
 export interface NuOffice {
   id: 'india' | 'germany';
@@ -113,4 +120,6 @@ export interface NuOffice {
   email?: string;
   website?: string;
   websiteHref?: string;
+  /** Rows under the address in the footer band. */
+  links?: NuOfficeLink[];
 }

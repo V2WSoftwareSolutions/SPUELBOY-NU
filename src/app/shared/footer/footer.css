@@ -341,6 +341,50 @@
   display: block;
 }
 
+/* WhatsApp and e-mail under the Indian address, each with its icon. */
+.band__links {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--color-nu-hairline);
+}
+
+.band__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--color-nu-body);
+  text-decoration: none;
+}
+
+.band__link span {
+  display: inline;
+}
+
+.band__link:hover {
+  color: var(--color-nu-orange);
+  text-decoration: underline;
+}
+
+.band__link svg {
+  flex: none;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.band__link--whatsapp svg {
+  fill: #25d366;
+}
+
+.band__link--email svg {
+  fill: none;
+  stroke: var(--color-nu-orange);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .footer__bottom {
   display: flex;
   flex-wrap: wrap;

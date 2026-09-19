@@ -56,8 +56,11 @@ export type ViewerSequence = 'exploded' | 'cleaning';
  */
 const EXPLODE_TIMELINE = { apart: 0.9, hold: 0.8, together: 0.9 };
 
-/** Seconds for the full glass-cleaning demonstration. */
-const CLEANING_DURATION = 5;
+/**
+ * Seconds for the full glass-cleaning demonstration — long enough for each
+ * step (scrub, rest, carry, rinse, lift) to be seen rather than glimpsed.
+ */
+const CLEANING_DURATION = 14;
 
 /**
  * How far the camera pulls back and how far its target rises for each sequence.
